@@ -1,0 +1,6 @@
+@CableJack.Api_HostAddress = http://localhost:5011
+
+GET {{CableJack.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

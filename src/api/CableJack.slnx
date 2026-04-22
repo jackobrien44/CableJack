@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="CableJack.Api/CableJack.Api.csproj" />
+  <Project Path="CableJack.Core/CableJack.Core.csproj" />
+  <Project Path="CableJack.Infrastructure/CableJack.Infrastructure.csproj" />
+</Solution>
