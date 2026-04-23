@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://github.com/jackobrien44/CableJack/raw/main/docs/logo.png" alt="Logo">
+</p>
+
 # CableJack 📺
 
 A lightweight IPTV streaming web application designed for small-scale deployment.
