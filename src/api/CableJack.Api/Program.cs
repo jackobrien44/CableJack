@@ -1,30 +1,12 @@
-using CableJack.Core.Services;
-using CableJack.Infrastructure.Data;
-using CableJack.Infrastructure.Services;
-using Microsoft.EntityFrameworkCore;
+using CableJack.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Add services
 builder.Services.AddOpenApiDocument();
 builder.Services.AddControllers();
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("Development", policy =>
-    {
-        policy.WithOrigins(
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "http://localhost:8080")
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
-
-builder.Services.AddDbContext<CableJackDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services.AddCorsPolicy();
 
 var app = builder.Build();
 

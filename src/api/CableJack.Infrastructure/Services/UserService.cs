@@ -1,20 +1,26 @@
 ﻿using CableJack.Core.Models;
 using CableJack.Core.Services;
+using CableJack.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace CableJack.Infrastructure.Services
 {
     public sealed class UserService : IUserService
     {
-        public UserService() { }
-
-        public Task<User> GetUserById(int userId)
+        private readonly CableJackDbContext _dbContext;
+        public UserService(CableJackDbContext dbContext)
         {
-            throw new NotImplementedException();
+            _dbContext = dbContext;
         }
 
-        public Task<List<User>> GetUsers()
+        public async Task<List<User>> GetUsers()
         {
-            throw new NotImplementedException();
+            return await _dbContext.Users.ToListAsync();
+        }
+
+        public async Task<User> GetUserById(int userId)
+        {
+            return await _dbContext.Users.FindAsync(userId);
         }
     }
 }
