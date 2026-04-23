@@ -14,13 +14,13 @@ namespace CableJack.Api.Controllers
         [HttpGet]
         public async Task<List<User>> GetUsers()
         {
-
+            return new List<User>();
         }
 
         [HttpGet("{userId:int}")]
         public async Task<User> GetUser(int userId)
         {
-
+            return null;
         }
     }
 }
