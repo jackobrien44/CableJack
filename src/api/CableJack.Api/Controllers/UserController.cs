@@ -7,6 +7,8 @@ namespace CableJack.Api.Controllers
     [Route("api/users")]
     public class UserController : Controller
     {
+
+
         public UserController()
         {
         }

@@ -1,3 +1,8 @@
+using CableJack.Core.Services;
+using CableJack.Infrastructure.Data;
+using CableJack.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -15,6 +20,11 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader();
     });
 });
+
+builder.Services.AddDbContext<CableJackDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<IUserService, UserService>();
 
 var app = builder.Build();
 

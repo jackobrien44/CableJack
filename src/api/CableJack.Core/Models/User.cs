@@ -11,5 +11,8 @@ namespace CableJack.Core.Models
         public required UserRole Role { get; set; }
         public required DateTime CreatedAt { get; set; }
         public DateTime? ModifiedAt { get; set; }
+
+        public ICollection<Stream> Streams { get; set; } = [];
+        public ICollection<UserToken> Tokens { get; set; } = [];
     }
 }
