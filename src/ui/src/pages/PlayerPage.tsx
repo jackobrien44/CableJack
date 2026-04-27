@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import Hls from 'hls.js'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { streamsApi } from '../api/streams'
@@ -80,6 +80,9 @@ export default function PlayerPage() {
 
       <div className="p-5 flex items-start justify-between gap-4">
         <div>
+          <Link to="/" className="inline-flex items-center gap-1 text-gray-500 hover:text-white text-xs mb-2 transition-colors">
+            ← Back to channels
+          </Link>
           <h2 className="text-white font-semibold text-lg">{stream?.channelName ?? '…'}</h2>
           {nowPlaying && (
             <div className="mt-1">

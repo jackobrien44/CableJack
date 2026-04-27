@@ -10,6 +10,8 @@ import FavoritesPage from './pages/FavoritesPage'
 import HistoryPage from './pages/HistoryPage'
 import PlayerPage from './pages/PlayerPage'
 import AdminPage from './pages/AdminPage'
+import EpgPage from './pages/EpgPage'
+import ProfilePage from './pages/ProfilePage'
 import { ApiError } from './api/client'
 
 function makeQueryClient(onError: (msg: string) => void) {
@@ -44,6 +46,8 @@ function AppWithToast() {
                 <Route index element={<ChannelsPage />} />
                 <Route path="favorites" element={<FavoritesPage />} />
                 <Route path="history" element={<HistoryPage />} />
+                <Route path="guide" element={<EpgPage />} />
+                <Route path="profile" element={<ProfilePage />} />
                 <Route path="admin" element={<AdminPage />} />
               </Route>
               <Route path="player/:id" element={<PlayerPage />} />

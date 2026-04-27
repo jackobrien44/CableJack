@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth'
 
 const navItems = [
   { to: '/', label: 'Channels', icon: '📺' },
+  { to: '/guide', label: 'TV Guide', icon: '📋' },
   { to: '/favorites', label: 'Favorites', icon: '⭐' },
   { to: '/history', label: 'History', icon: '🕐' },
 ]
@@ -63,7 +64,16 @@ export default function Layout() {
         </nav>
 
         <div className="px-4 py-4 border-t border-gray-800">
-          <p className="text-gray-400 text-xs mb-2 truncate">{user?.username}</p>
+          <NavLink
+            to="/profile"
+            className={({ isActive }) =>
+              `block text-xs mb-2 truncate transition-colors ${
+                isActive ? 'text-violet-400' : 'text-gray-400 hover:text-white'
+              }`
+            }
+          >
+            {user?.username}
+          </NavLink>
           <button
             onClick={logout}
             className="text-xs text-gray-500 hover:text-red-400 transition-colors"
