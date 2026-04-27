@@ -15,7 +15,8 @@ builder.Services.AddOpenApiDocument(config =>
     });
     config.OperationProcessors.Add(new NSwag.Generation.Processors.Security.OperationSecurityScopeProcessor("Bearer"));
 });
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddCorsPolicy();
 builder.Services.ConfigureAuthentication(builder.Configuration);
