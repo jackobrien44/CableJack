@@ -1,22 +1,23 @@
-﻿using CableJack.Core.DTOs;
+﻿using System.Security.Claims;
+using CableJack.Core.DTOs;
 using CableJack.Core.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CableJack.Api.Controllers
 {
     [ApiController]
     [Route("api/users")]
+    [Authorize]
     public class UserController(IUserService userService) : ControllerBase
     {
-        [HttpGet]
-        public async Task<List<UserResponse>> GetUsers()
+        [HttpGet("me")]
+        public async Task<ActionResult<UserResponse>> GetMe()
         {
-            return await userService.GetUsers();
-        }
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
+            if (claim is null || !int.TryParse(claim.Value, out var userId))
+                return Unauthorized();
 
-        [HttpGet("{userId:int}")]
-        public async Task<ActionResult<UserResponse>> GetUser(int userId)
-        {
             var user = await userService.GetUserById(userId);
             return user is null ? NotFound() : Ok(user);
         }

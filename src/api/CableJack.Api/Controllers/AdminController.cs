@@ -9,7 +9,7 @@ namespace CableJack.Api.Controllers
     [ApiController]
     [Route("api/admin")]
     [Authorize(Roles = "Administrator")]
-    public class AdminController(IUserService userService, IStreamService streamService) : ControllerBase
+    public class AdminController(IUserService userService, IStreamService streamService, IChannelService channelService) : ControllerBase
     {
         [HttpGet("users")]
         public async Task<List<UserResponse>> GetUsers()
@@ -42,6 +42,12 @@ namespace CableJack.Api.Controllers
         public async Task<List<StreamResponse>> GetAllStreams()
         {
             return await streamService.GetAllStreamsAsync();
+        }
+
+        [HttpGet("channels")]
+        public async Task<List<ChannelResponse>> GetAllChannels([FromQuery] int? categoryId)
+        {
+            return await channelService.GetChannelsAsync(categoryId, includeInactive: true);
         }
     }
 }

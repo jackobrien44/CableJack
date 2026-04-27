@@ -8,11 +8,12 @@ namespace CableJack.Infrastructure.Services
 {
     public sealed class ChannelService(CableJackDbContext db) : IChannelService
     {
-        public async Task<List<ChannelResponse>> GetChannelsAsync(int? categoryId = null)
+        public async Task<List<ChannelResponse>> GetChannelsAsync(int? categoryId = null, bool includeInactive = false)
         {
-            var query = db.Channels
-                .Include(c => c.Category)
-                .Where(c => c.IsActive);
+            var query = db.Channels.Include(c => c.Category).AsQueryable();
+
+            if (!includeInactive)
+                query = query.Where(c => c.IsActive);
 
             if (categoryId is not null)
                 query = query.Where(c => c.CategoryId == categoryId);
