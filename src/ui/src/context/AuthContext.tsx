@@ -37,6 +37,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
+  // When the token refresh fails in the API client, clear auth state
+  useEffect(() => {
+    const handler = () => setState({ user: null, isLoading: false })
+    window.addEventListener('auth:logout', handler)
+    return () => window.removeEventListener('auth:logout', handler)
+  }, [])
+
   const login = useCallback(async (username: string, password: string) => {
     const res = await authApi.login(username, password)
     localStorage.setItem('accessToken', res.accessToken)

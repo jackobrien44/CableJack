@@ -10,7 +10,43 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+// Single in-flight refresh promise so concurrent 401s only refresh once
+let refreshPromise: Promise<string> | null = null
+
+async function attemptRefresh(): Promise<string> {
+  if (refreshPromise) return refreshPromise
+
+  refreshPromise = (async () => {
+    const refreshToken = localStorage.getItem('refreshToken')
+    if (!refreshToken) throw new ApiError(401, 'No refresh token')
+
+    const res = await fetch(`${BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    })
+
+    if (!res.ok) {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      window.dispatchEvent(new Event('auth:logout'))
+      throw new ApiError(401, 'Session expired')
+    }
+
+    const data = await res.json()
+    localStorage.setItem('accessToken', data.accessToken)
+    localStorage.setItem('refreshToken', data.refreshToken)
+    return data.accessToken as string
+  })()
+
+  try {
+    return await refreshPromise
+  } finally {
+    refreshPromise = null
+  }
+}
+
+async function request<T>(path: string, init: RequestInit = {}, isRetry = false): Promise<T> {
   const token = localStorage.getItem('accessToken')
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -19,6 +55,14 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (token) headers['Authorization'] = `Bearer ${token}`
 
   const res = await fetch(`${BASE}${path}`, { ...init, headers })
+
+  if (res.status === 401 && !isRetry) {
+    const newToken = await attemptRefresh()
+    return request<T>(path, {
+      ...init,
+      headers: { ...(init.headers as Record<string, string>), Authorization: `Bearer ${newToken}` },
+    }, true)
+  }
 
   if (!res.ok) {
     let message = res.statusText

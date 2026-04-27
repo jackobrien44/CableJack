@@ -15,8 +15,8 @@ export default function PlayerPage() {
 
   const { data: stream } = useQuery({
     queryKey: ['stream', streamId],
-    queryFn: () => streamsApi.getMyStreams().then(s => s.find(x => x.id === streamId)),
-    refetchInterval: stream => stream?.status === 'Starting' ? 1000 : false,
+    queryFn: () => streamsApi.getById(streamId),
+    refetchInterval: (query) => query.state.data?.status === 'Starting' ? 1000 : false,
   })
 
   const { data: nowPlaying } = useQuery({
@@ -75,12 +75,7 @@ export default function PlayerPage() {
             Stream error. Please try again.
           </div>
         )}
-        <video
-          ref={videoRef}
-          className="w-full h-full"
-          controls
-          playsInline
-        />
+        <video ref={videoRef} className="w-full h-full" controls playsInline />
       </div>
 
       <div className="p-5 flex items-start justify-between gap-4">
