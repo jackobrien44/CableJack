@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './context/AuthContext'
@@ -14,8 +15,9 @@ import EpgPage from './pages/EpgPage'
 import ProfilePage from './pages/ProfilePage'
 import { ApiError } from './api/client'
 
-function makeQueryClient(onError: (msg: string) => void) {
-  return new QueryClient({
+function AppWithToast() {
+  const { toast } = useToast()
+  const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
         retry: 1,
@@ -24,16 +26,11 @@ function makeQueryClient(onError: (msg: string) => void) {
       mutations: {
         onError: (err) => {
           const msg = err instanceof ApiError ? err.message : 'Something went wrong.'
-          onError(msg)
+          toast(msg, 'error')
         },
       },
     },
-  })
-}
-
-function AppWithToast() {
-  const { toast } = useToast()
-  const queryClient = makeQueryClient((msg) => toast(msg, 'error'))
+  }))
 
   return (
     <QueryClientProvider client={queryClient}>
