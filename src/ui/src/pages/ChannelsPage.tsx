@@ -1,11 +1,11 @@
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
+
 import { channelsApi } from '../api/channels'
 import { categoriesApi } from '../api/categories'
 import { userApi } from '../api/user'
-import { streamsApi } from '../api/streams'
 import { ChannelCard } from '../components/ChannelCard'
+import { useStartStream } from '../hooks/useStartStream'
 import type { ChannelResponse } from '../types/api'
 
 const PAGE_SIZE = 48
@@ -45,10 +45,7 @@ export default function ChannelsPage() {
     mutationFn: userApi.removeFavorite,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['favorites'] }),
   })
-  const startStream = useMutation({
-    mutationFn: (channelId: number) => streamsApi.start(channelId),
-    onSuccess: (stream) => navigate(`/player/${stream.id}`),
-  })
+  const startStream = useStartStream()
 
   function handleSearchChange(value: string) {
     setSearch(value)

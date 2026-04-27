@@ -81,7 +81,6 @@ export default function PlayerPage() {
     }
   }, [stream?.url, stream?.status])
 
-  const isBuffering = stream?.status === 'Starting' || stream?.status === 'Running' && !hlsRef.current?.media
 
   return (
     <div className="flex flex-col min-h-svh bg-gray-950">

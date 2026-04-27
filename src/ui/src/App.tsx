@@ -13,6 +13,7 @@ import PlayerPage from './pages/PlayerPage'
 import AdminPage from './pages/AdminPage'
 import EpgPage from './pages/EpgPage'
 import ProfilePage from './pages/ProfilePage'
+import RegisterPage from './pages/RegisterPage'
 import { ApiError } from './api/client'
 
 function AppWithToast() {
@@ -38,6 +39,7 @@ function AppWithToast() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
                 <Route index element={<ChannelsPage />} />

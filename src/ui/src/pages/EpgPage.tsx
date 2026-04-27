@@ -1,21 +1,15 @@
-import { useNavigate } from 'react-router-dom'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { epgApi } from '../api/epg'
-import { streamsApi } from '../api/streams'
+import { useStartStream } from '../hooks/useStartStream'
 
 export default function EpgPage() {
-  const navigate = useNavigate()
-
   const { data: nowPlaying, isLoading } = useQuery({
     queryKey: ['epg-now-all'],
     queryFn: epgApi.getAllNowPlaying,
     refetchInterval: 60_000,
   })
 
-  const startStream = useMutation({
-    mutationFn: (channelId: number) => streamsApi.start(channelId),
-    onSuccess: (stream) => navigate(`/player/${stream.id}`),
-  })
+  const startStream = useStartStream()
 
   if (isLoading) return <div className="p-6 text-gray-400 text-sm">Loading guide…</div>
 

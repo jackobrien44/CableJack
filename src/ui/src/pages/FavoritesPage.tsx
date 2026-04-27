@@ -1,11 +1,9 @@
-import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
-import { streamsApi } from '../api/streams'
 import { ChannelCard } from '../components/ChannelCard'
+import { useStartStream } from '../hooks/useStartStream'
 
 export default function FavoritesPage() {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const { data: favorites, isLoading } = useQuery({
@@ -18,10 +16,7 @@ export default function FavoritesPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['favorites'] }),
   })
 
-  const startStream = useMutation({
-    mutationFn: (channelId: number) => streamsApi.start(channelId),
-    onSuccess: (stream) => navigate(`/player/${stream.id}`),
-  })
+  const startStream = useStartStream()
 
   if (isLoading) return <div className="p-6 text-gray-400 text-sm">Loading…</div>
 
