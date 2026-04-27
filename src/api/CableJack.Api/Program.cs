@@ -2,15 +2,14 @@ using CableJack.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services
 builder.Services.AddOpenApiDocument();
 builder.Services.AddControllers();
 builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddCorsPolicy();
+builder.Services.ConfigureAuthentication(builder.Configuration);
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseOpenApi();
@@ -19,6 +18,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("Development");
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
