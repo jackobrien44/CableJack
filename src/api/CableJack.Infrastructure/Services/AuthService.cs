@@ -17,13 +17,13 @@ namespace CableJack.Infrastructure.Services
     {
         public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
         {
-            if (await db.Users.AnyAsync(u => u.Name == request.Name))
+            if (await db.Users.AnyAsync(u => u.Username == request.Username))
                 throw new InvalidOperationException("Username already taken.");
 
             var user = new User
             {
                 Id = 0,
-                Name = request.Name,
+                Username = request.Username,
                 PasswordHash = HashPassword(request.Password),
                 IsActive = true,
                 Role = UserRole.User,
@@ -38,7 +38,7 @@ namespace CableJack.Infrastructure.Services
 
         public async Task<AuthResponse> LoginAsync(LoginRequest request, string? ipAddress = null, string? deviceInfo = null)
         {
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Name == request.Name)
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Username == request.Username)
                 ?? throw new UnauthorizedAccessException("Invalid credentials.");
 
             if (!user.IsActive)
@@ -108,7 +108,7 @@ namespace CableJack.Infrastructure.Services
                 RefreshToken = refreshToken,
                 ExpiresAt = expiresAt,
                 UserId = user.Id,
-                Name = user.Name,
+                Username = user.Username,
                 Role = user.Role,
             };
         }
@@ -123,7 +123,7 @@ namespace CableJack.Infrastructure.Services
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.UniqueName, user.Name),
+                new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
                 new Claim(ClaimTypes.Role, user.Role.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };
