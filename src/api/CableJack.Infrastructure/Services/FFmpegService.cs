@@ -4,6 +4,7 @@ using CableJack.Core.Enums;
 using CableJack.Core.Interfaces;
 using CableJack.Core.Settings;
 using CableJack.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -123,6 +124,16 @@ namespace CableJack.Infrastructure.Services
 
             stream.Status = status;
             if (url is not null) stream.Url = url;
+
+            if (status is StreamStatus.Stopped or StreamStatus.Error)
+            {
+                var openEntry = await db.WatchHistory
+                    .Where(w => w.UserId == stream.UserId && w.ChannelId == stream.ChannelId && w.StoppedAt == null)
+                    .OrderByDescending(w => w.StartedAt)
+                    .FirstOrDefaultAsync();
+                if (openEntry is not null)
+                    openEntry.StoppedAt = DateTime.UtcNow;
+            }
 
             await db.SaveChangesAsync();
         }
