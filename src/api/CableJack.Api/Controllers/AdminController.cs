@@ -3,6 +3,7 @@ using CableJack.Core.Interfaces;
 using CableJack.Core.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace CableJack.Api.Controllers
 {
@@ -60,5 +61,27 @@ namespace CableJack.Api.Controllers
             var result = await importService.ImportM3UAsync(stream);
             return Ok(result);
         }
+
+        [HttpPost("channels/import-url")]
+        public async Task<ActionResult<ImportResult>> ImportM3UFromUrl([FromBody] ImportUrlRequest request)
+        {
+            using var http = new HttpClient();
+            http.Timeout = TimeSpan.FromSeconds(30);
+            using var response = await http.GetAsync(request.Url, HttpCompletionOption.ResponseHeadersRead);
+
+            if (!response.IsSuccessStatusCode)
+                return BadRequest(new { message = $"Failed to fetch URL: {(int)response.StatusCode} {response.ReasonPhrase}" });
+
+            using var stream = await response.Content.ReadAsStreamAsync();
+            var result = await importService.ImportM3UAsync(stream);
+            return Ok(result);
+        }
     }
+}
+
+public sealed class ImportUrlRequest
+{
+    [Required]
+    [Url]
+    public required string Url { get; set; }
 }

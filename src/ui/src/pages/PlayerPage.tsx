@@ -12,11 +12,16 @@ export default function PlayerPage() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<Hls | null>(null)
   const [paused, setPaused] = useState(false)
+  const [hlsError, setHlsError] = useState<string | null>(null)
 
   const { data: stream } = useQuery({
     queryKey: ['stream', streamId],
     queryFn: () => streamsApi.getById(streamId),
-    refetchInterval: (query) => query.state.data?.status === 'Starting' ? 1000 : false,
+    // Poll while starting or running — stops once stopped/errored
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      return status === 'Starting' || status === 'Running' ? 2000 : false
+    },
   })
 
   const { data: nowPlaying } = useQuery({
@@ -46,12 +51,26 @@ export default function PlayerPage() {
     const video = videoRef.current
     if (!url || !video || stream?.status !== 'Running') return
 
+    setHlsError(null)
+
     if (Hls.isSupported()) {
-      const hls = new Hls()
+      const hls = new Hls({
+        // Retry manifest load a few times while ffmpeg buffers up the first segments
+        manifestLoadingMaxRetry: 6,
+        manifestLoadingRetryDelay: 1000,
+      })
       hlsRef.current = hls
       hls.loadSource(url)
       hls.attachMedia(video)
-      hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}))
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setHlsError(null)
+        video.play().catch(() => {})
+      })
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data.fatal) {
+          setHlsError('Failed to load stream. The source may be unavailable.')
+        }
+      })
       return () => {
         hls.destroy()
         hlsRef.current = null
@@ -62,6 +81,8 @@ export default function PlayerPage() {
     }
   }, [stream?.url, stream?.status])
 
+  const isBuffering = stream?.status === 'Starting' || stream?.status === 'Running' && !hlsRef.current?.media
+
   return (
     <div className="flex flex-col min-h-svh bg-gray-950">
       <div className="relative w-full bg-black" style={{ aspectRatio: '16/9', maxHeight: '75vh' }}>
@@ -70,9 +91,19 @@ export default function PlayerPage() {
             Starting stream…
           </div>
         )}
+        {stream?.status === 'Running' && !hlsError && (
+          <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm pointer-events-none">
+            <span className="opacity-0" id="buffering-hint">Buffering…</span>
+          </div>
+        )}
         {stream?.status === 'Error' && (
           <div className="absolute inset-0 flex items-center justify-center text-red-400 text-sm">
-            Stream error. Please try again.
+            Stream error. The source may be unavailable.
+          </div>
+        )}
+        {hlsError && (
+          <div className="absolute inset-0 flex items-center justify-center text-red-400 text-sm px-8 text-center">
+            {hlsError}
           </div>
         )}
         <video ref={videoRef} className="w-full h-full" controls playsInline />

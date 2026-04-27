@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi, type UpdateUserRequest } from '../api/admin'
 import { useAuth } from '../hooks/useAuth'
@@ -33,21 +33,38 @@ export default function AdminPage() {
   )
 }
 
-// ── Imports tab ───────────────────────────────────────────���──────────────────
+// ── Imports tab ──────────────────────────────────────────────────────────────
+
+function authHeaders() {
+  const token = localStorage.getItem('accessToken')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 function ImportsTab() {
   const [m3uResult, setM3uResult] = useState<ImportResult | null>(null)
   const [epgResult, setEpgResult] = useState<ImportResult | null>(null)
 
-  const importM3U = useMutation({
+  const importM3UFile = useMutation({
     mutationFn: async (file: File) => {
       const form = new FormData()
       form.append('file', file)
-      const token = localStorage.getItem('accessToken')
       const res = await fetch('/api/admin/channels/import', {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: authHeaders(),
         body: form,
+      })
+      if (!res.ok) throw new Error(await res.text())
+      return res.json() as Promise<ImportResult>
+    },
+    onSuccess: setM3uResult,
+  })
+
+  const importM3UUrl = useMutation({
+    mutationFn: async (url: string) => {
+      const res = await fetch('/api/admin/channels/import-url', {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
       })
       if (!res.ok) throw new Error(await res.text())
       return res.json() as Promise<ImportResult>
@@ -59,10 +76,9 @@ function ImportsTab() {
     mutationFn: async (file: File) => {
       const form = new FormData()
       form.append('file', file)
-      const token = localStorage.getItem('accessToken')
       const res = await fetch('/api/epg/import', {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: authHeaders(),
         body: form,
       })
       if (!res.ok) throw new Error(await res.text())
@@ -71,20 +87,22 @@ function ImportsTab() {
     onSuccess: setEpgResult,
   })
 
+  const m3uLoading = importM3UFile.isPending || importM3UUrl.isPending
+  const m3uError = importM3UFile.error?.message ?? importM3UUrl.error?.message
+
   return (
     <div className="space-y-6 max-w-2xl">
       <ImportCard
         title="Import M3U Playlist"
-        description="Upload an .m3u or .m3u8 file to create or update channels."
         accept=".m3u,.m3u8"
-        loading={importM3U.isPending}
+        loading={m3uLoading}
         result={m3uResult}
-        error={importM3U.error?.message}
-        onFile={f => importM3U.mutate(f)}
+        error={m3uError}
+        onFile={f => importM3UFile.mutate(f)}
+        onUrl={url => importM3UUrl.mutate(url)}
       />
       <ImportCard
         title="Import EPG (XMLTV)"
-        description="Upload an XMLTV file to populate programme listings."
         accept=".xml,.xmltv"
         loading={importEPG.isPending}
         result={epgResult}
@@ -97,33 +115,77 @@ function ImportsTab() {
 
 interface ImportCardProps {
   title: string
-  description: string
   accept: string
   loading: boolean
   result: ImportResult | null
   error?: string
   onFile: (f: File) => void
+  onUrl?: (url: string) => void
 }
 
-function ImportCard({ title, description, accept, loading, result, error, onFile }: ImportCardProps) {
+function ImportCard({ title, accept, loading, result, error, onFile, onUrl }: ImportCardProps) {
+  const [mode, setMode] = useState<'file' | 'url'>('file')
+  const [url, setUrl] = useState('')
+
+  function handleUrlSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (url.trim()) onUrl?.(url.trim())
+  }
+
   return (
     <div className="bg-gray-800 rounded-xl p-5">
-      <h2 className="text-white font-medium mb-1">{title}</h2>
-      <p className="text-gray-400 text-sm mb-4">{description}</p>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-white font-medium">{title}</h2>
+        {onUrl && (
+          <div className="flex gap-1 bg-gray-700 rounded-md p-0.5">
+            {(['file', 'url'] as const).map(m => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors capitalize ${
+                  mode === m ? 'bg-gray-600 text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
-      <label className={`inline-block cursor-pointer bg-violet-600 hover:bg-violet-500 text-white text-sm px-4 py-2 rounded-lg transition-colors ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
-        {loading ? 'Importing…' : 'Choose file'}
-        <input
-          type="file"
-          accept={accept}
-          className="hidden"
-          onChange={e => {
-            const f = e.target.files?.[0]
-            if (f) onFile(f)
-            e.target.value = ''
-          }}
-        />
-      </label>
+      {mode === 'file' ? (
+        <label className={`inline-block cursor-pointer bg-violet-600 hover:bg-violet-500 text-white text-sm px-4 py-2 rounded-lg transition-colors ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
+          {loading ? 'Importing…' : 'Choose file'}
+          <input
+            type="file"
+            accept={accept}
+            className="hidden"
+            onChange={e => {
+              const f = e.target.files?.[0]
+              if (f) onFile(f)
+              e.target.value = ''
+            }}
+          />
+        </label>
+      ) : (
+        <form onSubmit={handleUrlSubmit} className="flex gap-2">
+          <input
+            type="url"
+            value={url}
+            onChange={e => setUrl(e.target.value)}
+            placeholder="https://example.com/playlist.m3u"
+            required
+            className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors shrink-0"
+          >
+            {loading ? 'Importing…' : 'Import'}
+          </button>
+        </form>
+      )}
 
       {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
 
