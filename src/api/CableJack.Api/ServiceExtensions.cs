@@ -1,6 +1,7 @@
 using System.Text;
 using CableJack.Core.Interfaces;
 using CableJack.Core.Services;
+using CableJack.Infrastructure.BackgroundServices;
 using CableJack.Infrastructure.Data;
 using CableJack.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -22,6 +23,9 @@ public static class ServiceExtensions
         services.AddScoped<IChannelService, ChannelService>();
         services.AddScoped<IStreamService, StreamService>();
         services.AddSingleton<IFFmpegService, FFmpegService>();
+        services.AddHostedService<TokenCleanupService>();
+        services.AddScoped<IImportService, ImportService>();
+        services.AddScoped<IEpgService, EpgService>();
 
         return services;
     }

@@ -9,12 +9,12 @@ namespace CableJack.Api.Controllers
     [ApiController]
     [Route("api/admin")]
     [Authorize(Roles = "Administrator")]
-    public class AdminController(IUserService userService, IStreamService streamService, IChannelService channelService) : ControllerBase
+    public class AdminController(IUserService userService, IStreamService streamService, IChannelService channelService, IImportService importService) : ControllerBase
     {
         [HttpGet("users")]
-        public async Task<List<UserResponse>> GetUsers()
+        public async Task<PagedResult<UserResponse>> GetUsers([FromQuery] PaginationParams pagination)
         {
-            return await userService.GetUsers();
+            return await userService.GetUsers(pagination);
         }
 
         [HttpGet("users/{userId:int}")]
@@ -39,15 +39,26 @@ namespace CableJack.Api.Controllers
         }
 
         [HttpGet("streams")]
-        public async Task<List<StreamResponse>> GetAllStreams()
+        public async Task<PagedResult<StreamResponse>> GetAllStreams([FromQuery] PaginationParams pagination)
         {
-            return await streamService.GetAllStreamsAsync();
+            return await streamService.GetAllStreamsAsync(pagination);
         }
 
         [HttpGet("channels")]
-        public async Task<List<ChannelResponse>> GetAllChannels([FromQuery] int? categoryId)
+        public async Task<PagedResult<ChannelResponse>> GetAllChannels([FromQuery] PaginationParams pagination, [FromQuery] int? categoryId)
         {
-            return await channelService.GetChannelsAsync(categoryId, includeInactive: true);
+            return await channelService.GetChannelsAsync(pagination, categoryId, includeInactive: true);
+        }
+
+        [HttpPost("channels/import")]
+        public async Task<ActionResult<ImportResult>> ImportM3U(IFormFile file)
+        {
+            if (file.Length == 0)
+                return BadRequest(new { message = "File is empty." });
+
+            using var stream = file.OpenReadStream();
+            var result = await importService.ImportM3UAsync(stream);
+            return Ok(result);
         }
     }
 }

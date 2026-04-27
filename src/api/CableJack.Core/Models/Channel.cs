@@ -13,5 +13,6 @@
 
         public Category Category { get; set; } = null!;
         public ICollection<Stream> Streams { get; set; } = [];
+        public ICollection<Programme> Programmes { get; set; } = [];
     }
 }

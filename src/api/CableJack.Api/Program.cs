@@ -1,4 +1,5 @@
 using CableJack.Api;
+using CableJack.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUi();
 }
 
+app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseHttpsRedirection();
 app.UseCors("Development");
 app.UseStaticFiles();

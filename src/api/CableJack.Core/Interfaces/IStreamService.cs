@@ -11,6 +11,6 @@ namespace CableJack.Core.Interfaces
         Task<StreamResponse?> PauseStreamAsync(int id, int userId);
         Task<StreamResponse?> ResumeStreamAsync(int id, int userId);
         Task<bool> DeleteStreamAsync(int id, int userId);
-        Task<List<StreamResponse>> GetAllStreamsAsync();
+        Task<PagedResult<StreamResponse>> GetAllStreamsAsync(PaginationParams pagination);
     }
 }

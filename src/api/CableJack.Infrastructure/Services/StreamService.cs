@@ -2,6 +2,7 @@ using CableJack.Core.DTOs;
 using CableJack.Core.Enums;
 using CableJack.Core.Interfaces;
 using CableJack.Infrastructure.Data;
+using CableJack.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Stream = CableJack.Core.Models.Stream;
 
@@ -107,12 +108,12 @@ namespace CableJack.Infrastructure.Services
             return true;
         }
 
-        public async Task<List<StreamResponse>> GetAllStreamsAsync()
+        public async Task<PagedResult<StreamResponse>> GetAllStreamsAsync(PaginationParams pagination)
         {
             return await db.Streams
                 .Include(s => s.Channel)
                 .Select(s => ToResponse(s))
-                .ToListAsync();
+                .ToPagedResultAsync(pagination);
         }
 
         private static StreamResponse ToResponse(Stream s) => new()

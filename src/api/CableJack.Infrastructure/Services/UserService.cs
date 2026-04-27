@@ -1,13 +1,14 @@
 ﻿using CableJack.Core.DTOs;
 using CableJack.Core.Services;
 using CableJack.Infrastructure.Data;
+using CableJack.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace CableJack.Infrastructure.Services
 {
     public sealed class UserService(CableJackDbContext db) : IUserService
     {
-        public async Task<List<UserResponse>> GetUsers()
+        public async Task<PagedResult<UserResponse>> GetUsers(PaginationParams pagination)
         {
             return await db.Users
                 .Select(u => new UserResponse
@@ -19,7 +20,7 @@ namespace CableJack.Infrastructure.Services
                     CreatedAt = u.CreatedAt,
                     ModifiedAt = u.ModifiedAt,
                 })
-                .ToListAsync();
+                .ToPagedResultAsync(pagination);
         }
 
         public async Task<UserResponse?> GetUserById(int userId)

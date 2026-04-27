@@ -10,9 +10,9 @@ namespace CableJack.Api.Controllers
     public class CategoryController(ICategoryService categoryService) : ControllerBase
     {
         [HttpGet]
-        public async Task<List<CategoryResponse>> GetCategories()
+        public async Task<PagedResult<CategoryResponse>> GetCategories([FromQuery] PaginationParams pagination)
         {
-            return await categoryService.GetCategoriesAsync();
+            return await categoryService.GetCategoriesAsync(pagination);
         }
 
         [HttpGet("{id:int}")]

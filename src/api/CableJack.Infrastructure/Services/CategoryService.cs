@@ -2,13 +2,14 @@ using CableJack.Core.DTOs;
 using CableJack.Core.Interfaces;
 using CableJack.Core.Models;
 using CableJack.Infrastructure.Data;
+using CableJack.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace CableJack.Infrastructure.Services
 {
     public sealed class CategoryService(CableJackDbContext db) : ICategoryService
     {
-        public async Task<List<CategoryResponse>> GetCategoriesAsync()
+        public async Task<PagedResult<CategoryResponse>> GetCategoriesAsync(PaginationParams pagination)
         {
             return await db.Categories
                 .OrderBy(c => c.SortOrder)
@@ -18,7 +19,7 @@ namespace CableJack.Infrastructure.Services
                     Name = c.Name,
                     SortOrder = c.SortOrder,
                 })
-                .ToListAsync();
+                .ToPagedResultAsync(pagination);
         }
 
         public async Task<CategoryResponse?> GetCategoryByIdAsync(int id)

@@ -11,6 +11,7 @@ namespace CableJack.Infrastructure.Data
         public DbSet<Stream> Streams { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<UserToken> UserTokens { get; set; }
+        public DbSet<Programme> Programmes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -39,6 +40,15 @@ namespace CableJack.Infrastructure.Data
                 .WithMany(t => t.Tokens)
                 .HasForeignKey(u => u.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Programme>()
+                .HasOne(p => p.Channel)
+                .WithMany(c => c.Programmes)
+                .HasForeignKey(p => p.ChannelId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Programme>()
+                .HasIndex(p => new { p.ChannelId, p.StartTime });
         }
 
     }

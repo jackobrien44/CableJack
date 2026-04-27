@@ -2,13 +2,14 @@ using CableJack.Core.DTOs;
 using CableJack.Core.Interfaces;
 using CableJack.Core.Models;
 using CableJack.Infrastructure.Data;
+using CableJack.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace CableJack.Infrastructure.Services
 {
     public sealed class ChannelService(CableJackDbContext db) : IChannelService
     {
-        public async Task<List<ChannelResponse>> GetChannelsAsync(int? categoryId = null, bool includeInactive = false)
+        public async Task<PagedResult<ChannelResponse>> GetChannelsAsync(PaginationParams pagination, int? categoryId = null, bool includeInactive = false)
         {
             var query = db.Channels.Include(c => c.Category).AsQueryable();
 
@@ -21,7 +22,7 @@ namespace CableJack.Infrastructure.Services
             return await query
                 .OrderBy(c => c.SortOrder)
                 .Select(c => ToResponse(c))
-                .ToListAsync();
+                .ToPagedResultAsync(pagination);
         }
 
         public async Task<ChannelResponse?> GetChannelByIdAsync(int id)
