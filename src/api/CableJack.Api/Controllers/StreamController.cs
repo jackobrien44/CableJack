@@ -49,6 +49,26 @@ namespace CableJack.Api.Controllers
             return stream is null ? NotFound() : Ok(stream);
         }
 
+        [HttpPut("{id:int}/pause")]
+        public async Task<ActionResult<StreamResponse>> PauseStream(int id)
+        {
+            var userId = GetUserId();
+            if (userId is null) return Unauthorized();
+
+            var stream = await streamService.PauseStreamAsync(id, userId.Value);
+            return stream is null ? NotFound() : Ok(stream);
+        }
+
+        [HttpPut("{id:int}/resume")]
+        public async Task<ActionResult<StreamResponse>> ResumeStream(int id)
+        {
+            var userId = GetUserId();
+            if (userId is null) return Unauthorized();
+
+            var stream = await streamService.ResumeStreamAsync(id, userId.Value);
+            return stream is null ? NotFound() : Ok(stream);
+        }
+
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteStream(int id)
         {

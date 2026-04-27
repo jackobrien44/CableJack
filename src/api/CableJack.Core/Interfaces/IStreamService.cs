@@ -8,6 +8,8 @@ namespace CableJack.Core.Interfaces
         Task<StreamResponse?> GetStreamByIdAsync(int id, int userId);
         Task<StreamResponse> StartStreamAsync(int channelId, int userId);
         Task<StreamResponse?> StopStreamAsync(int id, int userId);
+        Task<StreamResponse?> PauseStreamAsync(int id, int userId);
+        Task<StreamResponse?> ResumeStreamAsync(int id, int userId);
         Task<bool> DeleteStreamAsync(int id, int userId);
         Task<List<StreamResponse>> GetAllStreamsAsync();
     }

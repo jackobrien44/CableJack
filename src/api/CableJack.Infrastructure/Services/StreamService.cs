@@ -7,7 +7,7 @@ using Stream = CableJack.Core.Models.Stream;
 
 namespace CableJack.Infrastructure.Services
 {
-    public sealed class StreamService(CableJackDbContext db) : IStreamService
+    public sealed class StreamService(CableJackDbContext db, IFFmpegService ffmpegService) : IStreamService
     {
         public async Task<List<StreamResponse>> GetUserStreamsAsync(int userId)
         {
@@ -29,22 +29,26 @@ namespace CableJack.Infrastructure.Services
 
         public async Task<StreamResponse> StartStreamAsync(int channelId, int userId)
         {
+            var channel = await db.Channels.FindAsync(channelId)
+                ?? throw new InvalidOperationException("Channel not found.");
+
             var stream = new Stream
             {
                 Id = 0,
                 ChannelId = channelId,
                 UserId = userId,
                 Status = StreamStatus.Starting,
-                // TODO: IFFmpegService — generate real HLS output URL and start FFmpeg process
-                Url = $"/streams/{Guid.NewGuid():N}/index.m3u8",
+                Url = string.Empty,
             };
 
             db.Streams.Add(stream);
             await db.SaveChangesAsync();
-            await db.Entry(stream).Reference(s => s.Channel).LoadAsync();
 
-            // TODO: IFFmpegService — invoke StartAsync(stream.Id, channel.SourceUrl, stream.Url)
-            // and update stream.Status to Running/Error based on result
+            await ffmpegService.StartAsync(stream.Id, channel.SourceUrl);
+
+            // Reload to pick up URL and status written by FFmpegService
+            await db.Entry(stream).ReloadAsync();
+            await db.Entry(stream).Reference(s => s.Channel).LoadAsync();
 
             return ToResponse(stream);
         }
@@ -57,10 +61,38 @@ namespace CableJack.Infrastructure.Services
 
             if (stream is null) return null;
 
-            // TODO: IFFmpegService — invoke StopAsync(stream.Id) to terminate the FFmpeg process
+            await ffmpegService.StopAsync(stream.Id);
 
-            stream.Status = StreamStatus.Stopped;
-            await db.SaveChangesAsync();
+            // Reload to pick up status written by FFmpegService
+            await db.Entry(stream).ReloadAsync();
+
+            return ToResponse(stream);
+        }
+
+        public async Task<StreamResponse?> PauseStreamAsync(int id, int userId)
+        {
+            var stream = await db.Streams
+                .Include(s => s.Channel)
+                .FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId);
+
+            if (stream is null) return null;
+
+            await ffmpegService.PauseAsync(stream.Id);
+            await db.Entry(stream).ReloadAsync();
+
+            return ToResponse(stream);
+        }
+
+        public async Task<StreamResponse?> ResumeStreamAsync(int id, int userId)
+        {
+            var stream = await db.Streams
+                .Include(s => s.Channel)
+                .FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId);
+
+            if (stream is null) return null;
+
+            await ffmpegService.ResumeAsync(stream.Id, stream.Channel.SourceUrl);
+            await db.Entry(stream).ReloadAsync();
 
             return ToResponse(stream);
         }

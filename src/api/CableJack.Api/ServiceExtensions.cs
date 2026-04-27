@@ -21,6 +21,7 @@ public static class ServiceExtensions
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IChannelService, ChannelService>();
         services.AddScoped<IStreamService, StreamService>();
+        services.AddSingleton<IFFmpegService, FFmpegService>();
 
         return services;
     }
