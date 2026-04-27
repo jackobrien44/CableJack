@@ -1,26 +1,41 @@
-﻿using CableJack.Core.Models;
+﻿using CableJack.Core.DTOs;
 using CableJack.Core.Services;
 using CableJack.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace CableJack.Infrastructure.Services
 {
-    public sealed class UserService : IUserService
+    public sealed class UserService(CableJackDbContext db) : IUserService
     {
-        private readonly CableJackDbContext _dbContext;
-        public UserService(CableJackDbContext dbContext)
+        public async Task<List<UserResponse>> GetUsers()
         {
-            _dbContext = dbContext;
+            return await db.Users
+                .Select(u => new UserResponse
+                {
+                    Id = u.Id,
+                    Username = u.Username,
+                    IsActive = u.IsActive,
+                    Role = u.Role,
+                    CreatedAt = u.CreatedAt,
+                    ModifiedAt = u.ModifiedAt,
+                })
+                .ToListAsync();
         }
 
-        public async Task<List<User>> GetUsers()
+        public async Task<UserResponse?> GetUserById(int userId)
         {
-            return await _dbContext.Users.ToListAsync();
-        }
-
-        public async Task<User> GetUserById(int userId)
-        {
-            return await _dbContext.Users.FindAsync(userId);
+            return await db.Users
+                .Where(u => u.Id == userId)
+                .Select(u => new UserResponse
+                {
+                    Id = u.Id,
+                    Username = u.Username,
+                    IsActive = u.IsActive,
+                    Role = u.Role,
+                    CreatedAt = u.CreatedAt,
+                    ModifiedAt = u.ModifiedAt,
+                })
+                .FirstOrDefaultAsync();
         }
     }
 }
