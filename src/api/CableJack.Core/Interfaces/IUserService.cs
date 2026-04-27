@@ -6,5 +6,7 @@ namespace CableJack.Core.Services
     {
         Task<List<UserResponse>> GetUsers();
         Task<UserResponse?> GetUserById(int userId);
+        Task<UserResponse?> UpdateUserAsync(int userId, UpdateUserRequest request);
+        Task<bool> DeleteUserAsync(int userId);
     }
 }

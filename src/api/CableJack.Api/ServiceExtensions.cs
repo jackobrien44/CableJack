@@ -20,6 +20,7 @@ public static class ServiceExtensions
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IChannelService, ChannelService>();
+        services.AddScoped<IStreamService, StreamService>();
 
         return services;
     }
