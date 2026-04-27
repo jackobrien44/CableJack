@@ -10,10 +10,7 @@ namespace CableJack.Api.Controllers
     public class EpgController(IEpgService epgService) : ControllerBase
     {
         [HttpGet("channels/{channelId:int}")]
-        public async Task<List<ProgrammeResponse>> GetProgrammes(
-            int channelId,
-            [FromQuery] DateTime? from,
-            [FromQuery] DateTime? to)
+        public async Task<List<ProgrammeResponse>> GetProgrammes(int channelId, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
         {
             return await epgService.GetProgrammesAsync(channelId, from, to);
         }
@@ -23,6 +20,12 @@ namespace CableJack.Api.Controllers
         {
             var programme = await epgService.GetNowPlayingAsync(channelId);
             return programme is null ? NotFound() : Ok(programme);
+        }
+
+        [HttpGet("now")]
+        public async Task<List<ProgrammeResponse>> GetAllNowPlaying()
+        {
+            return await epgService.GetAllNowPlayingAsync();
         }
 
         [HttpPost("import")]

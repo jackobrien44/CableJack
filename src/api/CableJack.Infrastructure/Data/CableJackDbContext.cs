@@ -12,6 +12,8 @@ namespace CableJack.Infrastructure.Data
         public DbSet<Category> Categories { get; set; }
         public DbSet<UserToken> UserTokens { get; set; }
         public DbSet<Programme> Programmes { get; set; }
+        public DbSet<UserFavorite> UserFavorites { get; set; }
+        public DbSet<WatchHistory> WatchHistory { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -49,6 +51,36 @@ namespace CableJack.Infrastructure.Data
 
             modelBuilder.Entity<Programme>()
                 .HasIndex(p => new { p.ChannelId, p.StartTime });
+
+            modelBuilder.Entity<UserFavorite>()
+                .HasKey(f => new { f.UserId, f.ChannelId });
+
+            modelBuilder.Entity<UserFavorite>()
+                .HasOne(f => f.User)
+                .WithMany(u => u.Favorites)
+                .HasForeignKey(f => f.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserFavorite>()
+                .HasOne(f => f.Channel)
+                .WithMany(c => c.Favorites)
+                .HasForeignKey(f => f.ChannelId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<WatchHistory>()
+                .HasOne(w => w.User)
+                .WithMany()
+                .HasForeignKey(w => w.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<WatchHistory>()
+                .HasOne(w => w.Channel)
+                .WithMany()
+                .HasForeignKey(w => w.ChannelId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<WatchHistory>()
+                .HasIndex(w => new { w.UserId, w.StartedAt });
         }
 
     }

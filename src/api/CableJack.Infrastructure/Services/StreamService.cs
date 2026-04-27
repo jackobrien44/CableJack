@@ -1,6 +1,7 @@
 using CableJack.Core.DTOs;
 using CableJack.Core.Enums;
 using CableJack.Core.Interfaces;
+using CableJack.Core.Models;
 using CableJack.Infrastructure.Data;
 using CableJack.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -47,6 +48,15 @@ namespace CableJack.Infrastructure.Services
 
             await ffmpegService.StartAsync(stream.Id, channel.SourceUrl);
 
+            db.WatchHistory.Add(new WatchHistory
+            {
+                Id = 0,
+                UserId = userId,
+                ChannelId = channelId,
+                StartedAt = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync();
+
             // Reload to pick up URL and status written by FFmpegService
             await db.Entry(stream).ReloadAsync();
             await db.Entry(stream).Reference(s => s.Channel).LoadAsync();
@@ -63,6 +73,16 @@ namespace CableJack.Infrastructure.Services
             if (stream is null) return null;
 
             await ffmpegService.StopAsync(stream.Id);
+
+            var openEntry = await db.WatchHistory
+                .Where(w => w.UserId == userId && w.ChannelId == stream.ChannelId && w.StoppedAt == null)
+                .OrderByDescending(w => w.StartedAt)
+                .FirstOrDefaultAsync();
+            if (openEntry is not null)
+            {
+                openEntry.StoppedAt = DateTime.UtcNow;
+                await db.SaveChangesAsync();
+            }
 
             // Reload to pick up status written by FFmpegService
             await db.Entry(stream).ReloadAsync();

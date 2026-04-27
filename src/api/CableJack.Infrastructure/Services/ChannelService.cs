@@ -9,7 +9,7 @@ namespace CableJack.Infrastructure.Services
 {
     public sealed class ChannelService(CableJackDbContext db) : IChannelService
     {
-        public async Task<PagedResult<ChannelResponse>> GetChannelsAsync(PaginationParams pagination, int? categoryId = null, bool includeInactive = false)
+        public async Task<PagedResult<ChannelResponse>> GetChannelsAsync(PaginationParams pagination, int? categoryId = null, bool includeInactive = false, string? search = null)
         {
             var query = db.Channels.Include(c => c.Category).AsQueryable();
 
@@ -18,6 +18,9 @@ namespace CableJack.Infrastructure.Services
 
             if (categoryId is not null)
                 query = query.Where(c => c.CategoryId == categoryId);
+
+            if (!string.IsNullOrWhiteSpace(search))
+                query = query.Where(c => c.Name.Contains(search) || (c.TvgId != null && c.TvgId.Contains(search)));
 
             return await query
                 .OrderBy(c => c.SortOrder)
@@ -40,6 +43,7 @@ namespace CableJack.Infrastructure.Services
             {
                 Id = 0,
                 Name = request.Name,
+                TvgId = request.TvgId,
                 Description = request.Description,
                 SourceUrl = request.SourceUrl,
                 LogoUrl = request.LogoUrl,
@@ -64,6 +68,7 @@ namespace CableJack.Infrastructure.Services
             if (channel is null) return null;
 
             if (request.Name is not null) channel.Name = request.Name;
+            if (request.TvgId is not null) channel.TvgId = request.TvgId;
             if (request.Description is not null) channel.Description = request.Description;
             if (request.SourceUrl is not null) channel.SourceUrl = request.SourceUrl;
             if (request.LogoUrl is not null) channel.LogoUrl = request.LogoUrl;
@@ -95,6 +100,7 @@ namespace CableJack.Infrastructure.Services
         {
             Id = c.Id,
             Name = c.Name,
+            TvgId = c.TvgId,
             Description = c.Description,
             SourceUrl = c.SourceUrl,
             LogoUrl = c.LogoUrl,

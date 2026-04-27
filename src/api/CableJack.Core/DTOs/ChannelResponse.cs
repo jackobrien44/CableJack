@@ -4,6 +4,7 @@ namespace CableJack.Core.DTOs
     {
         public required int Id { get; set; }
         public required string Name { get; set; }
+        public string? TvgId { get; set; }
         public string? Description { get; set; }
         public required string SourceUrl { get; set; }
         public string? LogoUrl { get; set; }

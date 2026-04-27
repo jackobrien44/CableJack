@@ -7,6 +7,8 @@ namespace CableJack.Core.DTOs
         [MaxLength(200)]
         public string? Name { get; set; }
 
+        public string? TvgId { get; set; }
+
         [MaxLength(500)]
         public string? Description { get; set; }
 

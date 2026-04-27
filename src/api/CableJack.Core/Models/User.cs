@@ -14,5 +14,6 @@ namespace CableJack.Core.Models
 
         public ICollection<Stream> Streams { get; set; } = [];
         public ICollection<UserToken> Tokens { get; set; } = [];
+        public ICollection<UserFavorite> Favorites { get; set; } = [];
     }
 }

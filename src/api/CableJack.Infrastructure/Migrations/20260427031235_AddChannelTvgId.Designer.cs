@@ -3,6 +3,7 @@ using System;
 using CableJack.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CableJack.Infrastructure.Migrations
 {
     [DbContext(typeof(CableJackDbContext))]
-    partial class CableJackDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260427031235_AddChannelTvgId")]
+    partial class AddChannelTvgId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
@@ -162,24 +165,6 @@ namespace CableJack.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("CableJack.Core.Models.UserFavorite", b =>
-                {
-                    b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ChannelId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("UserId", "ChannelId");
-
-                    b.HasIndex("ChannelId");
-
-                    b.ToTable("UserFavorites");
-                });
-
             modelBuilder.Entity("CableJack.Core.Models.UserToken", b =>
                 {
                     b.Property<int>("Id")
@@ -216,33 +201,6 @@ namespace CableJack.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("UserTokens");
-                });
-
-            modelBuilder.Entity("CableJack.Core.Models.WatchHistory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ChannelId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("StartedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("StoppedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChannelId");
-
-                    b.HasIndex("UserId", "StartedAt");
-
-                    b.ToTable("WatchHistory");
                 });
 
             modelBuilder.Entity("CableJack.Core.Models.Channel", b =>
@@ -286,25 +244,6 @@ namespace CableJack.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("CableJack.Core.Models.UserFavorite", b =>
-                {
-                    b.HasOne("CableJack.Core.Models.Channel", "Channel")
-                        .WithMany("Favorites")
-                        .HasForeignKey("ChannelId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CableJack.Core.Models.User", "User")
-                        .WithMany("Favorites")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Channel");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("CableJack.Core.Models.UserToken", b =>
                 {
                     b.HasOne("CableJack.Core.Models.User", "User")
@@ -316,25 +255,6 @@ namespace CableJack.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("CableJack.Core.Models.WatchHistory", b =>
-                {
-                    b.HasOne("CableJack.Core.Models.Channel", "Channel")
-                        .WithMany()
-                        .HasForeignKey("ChannelId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CableJack.Core.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Channel");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("CableJack.Core.Models.Category", b =>
                 {
                     b.Navigation("Channels");
@@ -342,8 +262,6 @@ namespace CableJack.Infrastructure.Migrations
 
             modelBuilder.Entity("CableJack.Core.Models.Channel", b =>
                 {
-                    b.Navigation("Favorites");
-
                     b.Navigation("Programmes");
 
                     b.Navigation("Streams");
@@ -351,8 +269,6 @@ namespace CableJack.Infrastructure.Migrations
 
             modelBuilder.Entity("CableJack.Core.Models.User", b =>
                 {
-                    b.Navigation("Favorites");
-
                     b.Navigation("Streams");
 
                     b.Navigation("Tokens");

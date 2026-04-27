@@ -39,6 +39,7 @@ namespace CableJack.Infrastructure.Services
 
                 var name = ParseName(line);
                 var groupTitle = ParseAttribute(line, "group-title") ?? "Uncategorized";
+                var tvgId = ParseAttribute(line, "tvg-id");
                 var logoUrl = ParseAttribute(line, "tvg-logo");
 
                 if (string.IsNullOrWhiteSpace(name))
@@ -66,6 +67,7 @@ namespace CableJack.Infrastructure.Services
                 if (channels.TryGetValue(url, out var existing))
                 {
                     existing.Name = name;
+                    existing.TvgId = tvgId;
                     existing.LogoUrl = logoUrl;
                     existing.CategoryId = category.Id;
                     result.ChannelsUpdated++;
@@ -76,6 +78,7 @@ namespace CableJack.Infrastructure.Services
                     {
                         Id = 0,
                         Name = name,
+                        TvgId = tvgId,
                         SourceUrl = url,
                         LogoUrl = logoUrl,
                         CategoryId = category.Id,

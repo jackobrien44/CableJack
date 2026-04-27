@@ -33,6 +33,17 @@ namespace CableJack.Infrastructure.Services
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<List<ProgrammeResponse>> GetAllNowPlayingAsync()
+        {
+            var now = DateTime.UtcNow;
+            return await db.Programmes
+                .Include(p => p.Channel)
+                .Where(p => p.StartTime <= now && p.EndTime > now)
+                .OrderBy(p => p.Channel.SortOrder)
+                .Select(p => ToResponse(p))
+                .ToListAsync();
+        }
+
         public async Task<ImportResult> ImportXmltvAsync(System.IO.Stream stream)
         {
             var result = new ImportResult
@@ -54,9 +65,12 @@ namespace CableJack.Infrastructure.Services
                 return result;
             }
 
-            // Map tvg-id -> channel ID using Channel.Name as fallback
             var channels = await db.Channels.ToListAsync();
-            var channelMap = channels.ToDictionary(c => c.Name, StringComparer.OrdinalIgnoreCase);
+            // Primary lookup by tvg-id, fallback to name
+            var channelMapByTvgId = channels
+                .Where(c => !string.IsNullOrEmpty(c.TvgId))
+                .ToDictionary(c => c.TvgId!, StringComparer.OrdinalIgnoreCase);
+            var channelMapByName = channels.ToDictionary(c => c.Name, StringComparer.OrdinalIgnoreCase);
 
             var programmesToAdd = new List<Programme>();
 
@@ -73,7 +87,8 @@ namespace CableJack.Infrastructure.Services
                     continue;
                 }
 
-                if (!channelMap.TryGetValue(channelAttr, out var channel))
+                if (!channelMapByTvgId.TryGetValue(channelAttr, out var channel) &&
+                    !channelMapByName.TryGetValue(channelAttr, out channel))
                 {
                     result.Errors.Add($"No channel found matching '{channelAttr}' — skipped.");
                     continue;

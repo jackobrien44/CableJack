@@ -22,6 +22,8 @@ builder.Services.ConfigureAuthentication(builder.Configuration);
 
 var app = builder.Build();
 
+Directory.CreateDirectory(Path.Combine(app.Environment.ContentRootPath, "wwwroot", "streams"));
+
 if (app.Environment.IsDevelopment())
 {
     app.UseOpenApi();
