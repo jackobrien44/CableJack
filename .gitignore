@@ -58,3 +58,8 @@ nunit-*.xml
 
 # .user
 *.csproj.user
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
