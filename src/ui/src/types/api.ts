@@ -80,6 +80,10 @@ export interface WatchHistoryResponse {
   stoppedAt: string | null
 }
 
+export interface SystemSettingsDto {
+  registrationMode: 'Open' | 'InviteOnly' | 'Disabled'
+}
+
 export interface ImportResult {
   channelsCreated: number
   channelsUpdated: number

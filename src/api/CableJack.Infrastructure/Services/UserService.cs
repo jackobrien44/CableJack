@@ -9,6 +9,35 @@ namespace CableJack.Infrastructure.Services
 {
     public sealed class UserService(CableJackDbContext db) : IUserService
     {
+        public async Task<UserResponse> CreateUserAsync(CreateUserRequest request)
+        {
+            if (await db.Users.AnyAsync(u => u.Username == request.Username))
+                throw new InvalidOperationException("Username already taken.");
+
+            var user = new Core.Models.User
+            {
+                Id = 0,
+                Username = request.Username,
+                PasswordHash = HashPassword(request.Password),
+                IsActive = request.IsActive,
+                Role = request.Role,
+                CreatedAt = DateTime.UtcNow,
+            };
+
+            db.Users.Add(user);
+            await db.SaveChangesAsync();
+
+            return new UserResponse
+            {
+                Id = user.Id,
+                Username = user.Username,
+                IsActive = user.IsActive,
+                Role = user.Role,
+                CreatedAt = user.CreatedAt,
+                ModifiedAt = user.ModifiedAt,
+            };
+        }
+
         public async Task<PagedResult<UserResponse>> GetUsers(PaginationParams pagination)
         {
             return await db.Users
@@ -169,12 +198,12 @@ namespace CableJack.Infrastructure.Services
         {
             byte[] salt = RandomNumberGenerator.GetBytes(16);
             byte[] hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, 100_000, HashAlgorithmName.SHA256, 32);
-            return $"{Convert.ToBase64String(salt)}:{Convert.ToBase64String(hash)}";
+            return $"{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}";
         }
 
         private static bool VerifyPassword(string password, string hashedPassword)
         {
-            var parts = hashedPassword.Split(':');
+            var parts = hashedPassword.Split('.');
             if (parts.Length != 2) return false;
             byte[] salt = Convert.FromBase64String(parts[0]);
             byte[] expectedHash = Convert.FromBase64String(parts[1]);

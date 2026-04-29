@@ -4,6 +4,7 @@ namespace CableJack.Core.Services
 {
     public interface IUserService
     {
+        Task<UserResponse> CreateUserAsync(CreateUserRequest request);
         Task<PagedResult<UserResponse>> GetUsers(PaginationParams pagination);
         Task<UserResponse?> GetUserById(int userId);
         Task<UserResponse?> UpdateUserAsync(int userId, UpdateUserRequest request);

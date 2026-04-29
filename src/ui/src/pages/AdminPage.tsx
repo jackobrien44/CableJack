@@ -1,14 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { adminApi, type UpdateUserRequest } from '../api/admin'
+import { adminApi, type UpdateUserRequest, type CreateUserRequest } from '../api/admin'
 import { channelsApi } from '../api/channels'
 import { categoriesApi } from '../api/categories'
 import { epgApi } from '../api/epg'
 import { providersApi, type CreateProviderRequest } from '../api/providers'
 import { useAuth } from '../hooks/useAuth'
-import type { ImportResult, ProviderResponse, UserResponse } from '../types/api'
+import type { ImportResult, ProviderResponse, SystemSettingsDto, UserResponse } from '../types/api'
 
-type Tab = 'imports' | 'providers' | 'users'
+type Tab = 'imports' | 'providers' | 'users' | 'settings'
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('imports')
@@ -18,7 +18,7 @@ export default function AdminPage() {
       <h1 className="text-xl font-semibold text-white mb-6">Admin</h1>
 
       <div className="flex gap-1 mb-6 bg-gray-800 rounded-lg p-1 w-fit">
-        {(['imports', 'providers', 'users'] as Tab[]).map(t => (
+        {(['imports', 'providers', 'users', 'settings'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -34,6 +34,68 @@ export default function AdminPage() {
       {tab === 'imports' && <ImportsTab />}
       {tab === 'providers' && <ProvidersTab />}
       {tab === 'users' && <UsersTab />}
+      {tab === 'settings' && <SettingsTab />}
+    </div>
+  )
+}
+
+// ── Settings tab ──────────────────────────────────────────────────────────────
+
+function SettingsTab() {
+  const queryClient = useQueryClient()
+  const [saved, setSaved] = useState(false)
+
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ['admin-settings'],
+    queryFn: () => adminApi.getSettings(),
+  })
+
+  const [registrationMode, setRegistrationMode] = useState<SystemSettingsDto['registrationMode'] | null>(null)
+
+  const currentMode = registrationMode ?? settings?.registrationMode ?? 'Open'
+
+  const update = useMutation({
+    mutationFn: (body: SystemSettingsDto) => adminApi.updateSettings(body),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['admin-settings'], data)
+      setRegistrationMode(null)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    },
+  })
+
+  if (isLoading) return <div className="text-gray-400 text-sm">Loading…</div>
+
+  const dirty = registrationMode !== null && registrationMode !== settings?.registrationMode
+
+  return (
+    <div className="max-w-md space-y-6">
+      <div className="bg-gray-800 rounded-xl p-5 space-y-4">
+        <h2 className="text-white font-medium">Registration</h2>
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">Registration mode</label>
+          <select
+            value={currentMode}
+            onChange={e => setRegistrationMode(e.target.value as SystemSettingsDto['registrationMode'])}
+            className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500 w-full"
+          >
+            <option value="Open">Open — anyone can register</option>
+            <option value="InviteOnly">Invite only</option>
+            <option value="Disabled">Disabled — no new registrations</option>
+          </select>
+        </div>
+        {update.error && <p className="text-red-400 text-sm">{update.error.message}</p>}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => update.mutate({ registrationMode: currentMode })}
+            disabled={!dirty || update.isPending}
+            className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+          >
+            {update.isPending ? 'Saving…' : 'Save'}
+          </button>
+          {saved && <span className="text-green-400 text-sm">Saved</span>}
+        </div>
+      </div>
     </div>
   )
 }
@@ -529,6 +591,8 @@ function ProviderForm({ initial, loading, error, onSubmit, onCancel }: ProviderF
 function UsersTab() {
   const { user: currentUser } = useAuth()
   const queryClient = useQueryClient()
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<number | null>(null)
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['admin-users'],
@@ -537,10 +601,24 @@ function UsersTab() {
     getNextPageParam: (last) => last.hasNextPage ? last.page + 1 : undefined,
   })
 
+  const createUser = useMutation({
+    mutationFn: (body: CreateUserRequest) => adminApi.createUser(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      setShowCreateForm(false)
+    },
+  })
+
   const updateUser = useMutation({
     mutationFn: ({ userId, body }: { userId: number; body: UpdateUserRequest }) =>
       adminApi.updateUser(userId, body),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
+  })
+
+  const resetPassword = useMutation({
+    mutationFn: ({ userId, newPassword }: { userId: number; newPassword: string }) =>
+      adminApi.resetPassword(userId, newPassword),
+    onSuccess: () => setResetPasswordUserId(null),
   })
 
   const deleteUser = useMutation({
@@ -553,7 +631,23 @@ function UsersTab() {
   if (isLoading) return <div className="text-gray-400 text-sm">Loading users…</div>
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl space-y-4">
+      {showCreateForm ? (
+        <CreateUserForm
+          loading={createUser.isPending}
+          error={createUser.error?.message}
+          onSubmit={body => createUser.mutate(body)}
+          onCancel={() => setShowCreateForm(false)}
+        />
+      ) : (
+        <button
+          onClick={() => setShowCreateForm(true)}
+          className="bg-violet-600 hover:bg-violet-500 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+        >
+          Create User
+        </button>
+      )}
+
       <div className="bg-gray-800 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -571,6 +665,9 @@ function UsersTab() {
                 key={user.id}
                 user={user}
                 isSelf={user.id === currentUser?.id}
+                resettingPassword={resetPasswordUserId === user.id}
+                resetPasswordError={resetPassword.error?.message}
+                resetPasswordPending={resetPassword.isPending && resetPassword.variables?.userId === user.id}
                 onToggleRole={() => updateUser.mutate({
                   userId: user.id,
                   body: { role: user.role === 'Administrator' ? 'User' : 'Administrator' },
@@ -579,6 +676,9 @@ function UsersTab() {
                   userId: user.id,
                   body: { isActive: !user.isActive },
                 })}
+                onResetPassword={() => setResetPasswordUserId(user.id)}
+                onCancelResetPassword={() => setResetPasswordUserId(null)}
+                onConfirmResetPassword={pw => resetPassword.mutate({ userId: user.id, newPassword: pw })}
                 onDelete={() => {
                   if (confirm(`Delete user "${user.username}"? This cannot be undone.`)) {
                     deleteUser.mutate(user.id)
@@ -591,7 +691,7 @@ function UsersTab() {
       </div>
 
       {hasNextPage && (
-        <div className="mt-4">
+        <div>
           <button
             onClick={() => fetchNextPage()}
             disabled={isFetchingNextPage}
@@ -605,59 +705,178 @@ function UsersTab() {
   )
 }
 
+interface CreateUserFormProps {
+  loading: boolean
+  error?: string
+  onSubmit: (body: CreateUserRequest) => void
+  onCancel: () => void
+}
+
+function CreateUserForm({ loading, error, onSubmit, onCancel }: CreateUserFormProps) {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [role, setRole] = useState<'User' | 'Administrator'>('User')
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    onSubmit({ username, password, role })
+  }
+
+  const inputCls = 'bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 w-full'
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-gray-800 rounded-xl p-5 space-y-3">
+      <h2 className="text-white font-medium">New User</h2>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">Username *</label>
+          <input value={username} onChange={e => setUsername(e.target.value)} required minLength={3} placeholder="username" className={inputCls} />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">Password *</label>
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} placeholder="min 8 chars" className={inputCls} />
+        </div>
+      </div>
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Role</label>
+        <select
+          value={role}
+          onChange={e => setRole(e.target.value as 'User' | 'Administrator')}
+          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+        >
+          <option value="User">User</option>
+          <option value="Administrator">Administrator</option>
+        </select>
+      </div>
+      {error && <p className="text-red-400 text-sm">{error}</p>}
+      <div className="flex gap-2 pt-1">
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+        >
+          {loading ? 'Creating…' : 'Create'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  )
+}
+
 interface UserRowProps {
   user: UserResponse
   isSelf: boolean
+  resettingPassword: boolean
+  resetPasswordError?: string
+  resetPasswordPending: boolean
   onToggleRole: () => void
   onToggleActive: () => void
+  onResetPassword: () => void
+  onCancelResetPassword: () => void
+  onConfirmResetPassword: (pw: string) => void
   onDelete: () => void
 }
 
-function UserRow({ user, isSelf, onToggleRole, onToggleActive, onDelete }: UserRowProps) {
+function UserRow({
+  user, isSelf, resettingPassword, resetPasswordError, resetPasswordPending,
+  onToggleRole, onToggleActive, onResetPassword, onCancelResetPassword, onConfirmResetPassword, onDelete,
+}: UserRowProps) {
+  const [newPassword, setNewPassword] = useState('')
+
+  function handleResetSubmit(e: FormEvent) {
+    e.preventDefault()
+    onConfirmResetPassword(newPassword)
+    setNewPassword('')
+  }
+
   return (
-    <tr className="hover:bg-gray-750">
-      <td className="px-4 py-3 text-white font-medium">
-        {user.username}
-        {isSelf && <span className="ml-2 text-xs text-gray-500">(you)</span>}
-      </td>
-      <td className="px-4 py-3">
-        <button
-          onClick={onToggleRole}
-          disabled={isSelf}
-          className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
-            user.role === 'Administrator'
-              ? 'bg-violet-600/30 text-violet-300 hover:bg-violet-600/50'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          } disabled:opacity-40 disabled:cursor-not-allowed`}
-        >
-          {user.role}
-        </button>
-      </td>
-      <td className="px-4 py-3">
-        <button
-          onClick={onToggleActive}
-          disabled={isSelf}
-          className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
-            user.isActive
-              ? 'bg-green-600/30 text-green-300 hover:bg-green-600/50'
-              : 'bg-red-600/30 text-red-300 hover:bg-red-600/50'
-          } disabled:opacity-40 disabled:cursor-not-allowed`}
-        >
-          {user.isActive ? 'Active' : 'Inactive'}
-        </button>
-      </td>
-      <td className="px-4 py-3 text-gray-400 text-xs">
-        {new Date(user.createdAt).toLocaleDateString()}
-      </td>
-      <td className="px-4 py-3 text-right">
-        <button
-          onClick={onDelete}
-          disabled={isSelf}
-          className="text-gray-600 hover:text-red-400 disabled:opacity-0 transition-colors text-xs"
-        >
-          Delete
-        </button>
-      </td>
-    </tr>
+    <>
+      <tr className="hover:bg-gray-750">
+        <td className="px-4 py-3 text-white font-medium">
+          {user.username}
+          {isSelf && <span className="ml-2 text-xs text-gray-500">(you)</span>}
+        </td>
+        <td className="px-4 py-3">
+          <button
+            onClick={onToggleRole}
+            disabled={isSelf}
+            className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+              user.role === 'Administrator'
+                ? 'bg-violet-600/30 text-violet-300 hover:bg-violet-600/50'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            } disabled:opacity-40 disabled:cursor-not-allowed`}
+          >
+            {user.role}
+          </button>
+        </td>
+        <td className="px-4 py-3">
+          <button
+            onClick={onToggleActive}
+            disabled={isSelf}
+            className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+              user.isActive
+                ? 'bg-green-600/30 text-green-300 hover:bg-green-600/50'
+                : 'bg-red-600/30 text-red-300 hover:bg-red-600/50'
+            } disabled:opacity-40 disabled:cursor-not-allowed`}
+          >
+            {user.isActive ? 'Active' : 'Inactive'}
+          </button>
+        </td>
+        <td className="px-4 py-3 text-gray-400 text-xs">
+          {new Date(user.createdAt).toLocaleDateString()}
+        </td>
+        <td className="px-4 py-3 text-right">
+          <div className="flex items-center justify-end gap-3">
+            {!isSelf && (
+              <button
+                onClick={resettingPassword ? onCancelResetPassword : onResetPassword}
+                className={`text-xs transition-colors ${resettingPassword ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-300'}`}
+              >
+                {resettingPassword ? 'Cancel' : 'Reset pw'}
+              </button>
+            )}
+            <button
+              onClick={onDelete}
+              disabled={isSelf}
+              className="text-gray-600 hover:text-red-400 disabled:opacity-0 transition-colors text-xs"
+            >
+              Delete
+            </button>
+          </div>
+        </td>
+      </tr>
+      {resettingPassword && (
+        <tr className="bg-gray-800/50">
+          <td colSpan={5} className="px-4 py-3">
+            <form onSubmit={handleResetSubmit} className="flex items-center gap-2">
+              <input
+                type="password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                required
+                minLength={8}
+                placeholder="New password (min 8 chars)"
+                autoFocus
+                className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 w-64"
+              />
+              <button
+                type="submit"
+                disabled={resetPasswordPending}
+                className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded-lg transition-colors"
+              >
+                {resetPasswordPending ? 'Saving…' : 'Set password'}
+              </button>
+              {resetPasswordError && <span className="text-red-400 text-xs">{resetPasswordError}</span>}
+            </form>
+          </td>
+        </tr>
+      )}
+    </>
   )
 }

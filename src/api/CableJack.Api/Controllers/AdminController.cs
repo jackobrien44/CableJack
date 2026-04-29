@@ -26,6 +26,20 @@ namespace CableJack.Api.Controllers
             return Ok(settings);
         }
 
+        [HttpPost("users")]
+        public async Task<ActionResult<UserResponse>> CreateUser([FromBody] CreateUserRequest request)
+        {
+            try
+            {
+                var user = await userService.CreateUserAsync(request);
+                return CreatedAtAction(nameof(GetUser), new { userId = user.Id }, user);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+        }
+
         [HttpGet("users")]
         public async Task<PagedResult<UserResponse>> GetUsers([FromQuery] PaginationParams pagination)
         {

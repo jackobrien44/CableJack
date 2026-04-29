@@ -1,9 +1,5 @@
 namespace CableJack.Core.Models
 {
-    /// <summary>
-    /// Represents a single system setting as a key-value pair.
-    /// This generalized approach allows adding new settings without schema changes.
-    /// </summary>
     public class SystemSetting
     {
         public int Id { get; set; }
