@@ -33,13 +33,13 @@ export default function EpgPage() {
         {nowPlaying.map(programme => (
           <div
             key={programme.id}
-            className="bg-gray-800 rounded-xl px-4 py-3 flex items-center gap-4"
+            className="bg-gray-800 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
           >
-            <div className="shrink-0 w-32 text-right">
+            <div className="sm:shrink-0 sm:w-32 w-full text-left sm:text-right">
               <p className="text-white text-sm font-medium truncate">{programme.channelName}</p>
             </div>
 
-            <div className="w-px h-8 bg-gray-700 shrink-0" />
+            <div className="hidden sm:block w-px h-8 bg-gray-700 shrink-0" />
 
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm font-medium truncate">{programme.title}</p>
@@ -48,7 +48,7 @@ export default function EpgPage() {
               )}
             </div>
 
-            <div className="shrink-0 text-right">
+            <div className="sm:shrink-0 w-full sm:w-auto text-left sm:text-right">
               <p className="text-gray-400 text-xs">
                 {fmtTime(programme.startTime)} – {fmtTime(programme.endTime)}
               </p>
@@ -58,7 +58,7 @@ export default function EpgPage() {
             <button
               onClick={() => startStream.mutate(programme.channelId)}
               disabled={startStream.isPending && startStream.variables === programme.channelId}
-              className="shrink-0 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded-lg transition-colors"
+              className="shrink-0 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded-lg transition-colors min-h-[44px] w-full sm:w-auto"
             >
               Watch
             </button>
