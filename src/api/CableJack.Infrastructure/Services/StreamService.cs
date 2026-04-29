@@ -132,6 +132,7 @@ namespace CableJack.Infrastructure.Services
         {
             return await db.Streams
                 .Include(s => s.Channel)
+                .OrderByDescending(s => s.StartedAt)
                 .Select(s => ToResponse(s))
                 .ToPagedResultAsync(pagination);
         }

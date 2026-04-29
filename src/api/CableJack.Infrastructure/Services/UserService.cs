@@ -12,6 +12,7 @@ namespace CableJack.Infrastructure.Services
         public async Task<PagedResult<UserResponse>> GetUsers(PaginationParams pagination)
         {
             return await db.Users
+                .OrderBy(u => u.Id)
                 .Select(u => new UserResponse
                 {
                     Id = u.Id,
