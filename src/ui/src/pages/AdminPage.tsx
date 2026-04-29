@@ -431,13 +431,13 @@ function ProvidersTab() {
           />
         ) : (
           <div key={p.id} className="bg-gray-800 rounded-xl p-5">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="space-y-0.5 min-w-0">
                 <p className="text-white font-medium">{p.name}</p>
                 {p.baseUrl && <p className="text-gray-400 text-xs truncate">{p.baseUrl}</p>}
                 {p.username && <p className="text-gray-500 text-xs">User: {p.username}</p>}
               </div>
-              <div className="flex gap-3 shrink-0 items-center">
+              <div className="flex flex-wrap gap-2 shrink-0">
                 {p.baseUrl && p.username && p.password && (
                   <>
                     <button

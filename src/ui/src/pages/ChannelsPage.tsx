@@ -28,7 +28,8 @@ export default function ChannelsPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [gridEl, setGridEl] = useState<HTMLDivElement | null>(null)
   const [gridDims, setGridDims] = useState({ cols: 6, rows: 4 })
-  const pageSize = gridDims.cols * gridDims.rows
+  const [isMobile, setIsMobile] = useState(false)
+  const pageSize = isMobile ? 20 : gridDims.cols * gridDims.rows
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
@@ -111,9 +112,14 @@ export default function ChannelsPage() {
     if (!gridEl) return
     const ro = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect
-      const cols = Math.max(1, Math.floor((width + GAP) / (MIN_CARD_W + GAP)))
-      const rows = Math.max(1, Math.floor((height + GAP) / (MIN_CARD_H + GAP)))
-      setGridDims(prev => prev.cols === cols && prev.rows === rows ? prev : { cols, rows })
+      if (width < 640) {
+        setIsMobile(true)
+      } else {
+        setIsMobile(false)
+        const cols = Math.max(1, Math.floor((width + GAP) / (MIN_CARD_W + GAP)))
+        const rows = Math.max(1, Math.floor((height + GAP) / (MIN_CARD_H + GAP)))
+        setGridDims(prev => prev.cols === cols && prev.rows === rows ? prev : { cols, rows })
+      }
     })
     ro.observe(gridEl)
     return () => ro.disconnect()
@@ -195,10 +201,14 @@ export default function ChannelsPage() {
       )}
 
       {channels.length > 0 && (
-        <div ref={setGridEl} className="flex-1 min-h-0 overflow-hidden">
+        <div ref={setGridEl} className={`flex-1 min-h-0 ${isMobile ? 'overflow-y-auto pb-3' : 'overflow-hidden'}`}>
           <div
-            className="h-full grid gap-3"
-            style={{
+            className="grid gap-3"
+            style={isMobile ? {
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gridAutoRows: '160px',
+            } : {
+              height: '100%',
               gridTemplateColumns: `repeat(${gridDims.cols}, 1fr)`,
               gridTemplateRows: `repeat(${gridDims.rows}, 1fr)`,
             }}
