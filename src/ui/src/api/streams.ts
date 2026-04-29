@@ -9,4 +9,5 @@ export const streamsApi = {
   pause: (id: number) => api.put<StreamResponse>(`/streams/${id}/pause`),
   resume: (id: number) => api.put<StreamResponse>(`/streams/${id}/resume`),
   delete: (id: number) => api.delete<void>(`/streams/${id}`),
+  stopAll: () => api.post<void>('/streams/stop-all'),
 }

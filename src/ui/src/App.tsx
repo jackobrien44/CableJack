@@ -15,9 +15,11 @@ import EpgPage from './pages/EpgPage'
 import ProfilePage from './pages/ProfilePage'
 import RegisterPage from './pages/RegisterPage'
 import { ApiError } from './api/client'
+import { useStopStreamsOnExit } from './hooks/useStopStreamsOnExit'
 
 function AppWithToast() {
   const { toast } = useToast()
+  useStopStreamsOnExit()
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {

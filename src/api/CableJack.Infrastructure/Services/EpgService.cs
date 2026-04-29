@@ -143,12 +143,27 @@ namespace CableJack.Infrastructure.Services
 
         private static bool TryParseXmltvDateTime(string value, out DateTime result)
         {
-            // XMLTV format: 20240101120000 +0000
-            var datePart = value.Split(' ')[0];
-            return DateTime.TryParseExact(datePart, "yyyyMMddHHmmss",
+            result = default;
+            var parts = value.Trim().Split(' ');
+
+            if (!DateTime.TryParseExact(parts[0], "yyyyMMddHHmmss",
                 System.Globalization.CultureInfo.InvariantCulture,
-                System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
-                out result);
+                System.Globalization.DateTimeStyles.None,
+                out var dt))
+                return false;
+
+            // Parse timezone offset (+0500, -0500) and subtract to get UTC
+            var offset = TimeSpan.Zero;
+            if (parts.Length > 1 && parts[1].Length >= 5 &&
+                int.TryParse(parts[1][1..3], out var hours) &&
+                int.TryParse(parts[1][3..5], out var minutes))
+            {
+                var sign = parts[1][0] == '-' ? -1 : 1;
+                offset = new TimeSpan(sign * hours, sign * minutes, 0);
+            }
+
+            result = DateTime.SpecifyKind(dt - offset, DateTimeKind.Utc);
+            return true;
         }
 
         private static ProgrammeResponse ToResponse(Programme p) => new()

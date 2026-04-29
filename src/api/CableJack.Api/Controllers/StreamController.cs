@@ -69,6 +69,15 @@ namespace CableJack.Api.Controllers
             return stream is null ? NotFound() : Ok(stream);
         }
 
+        [HttpPost("stop-all")]
+        public async Task<IActionResult> StopAllStreams()
+        {
+            var userId = GetUserId();
+            if (userId is null) return Unauthorized();
+            await streamService.StopAllUserStreamsAsync(userId.Value);
+            return NoContent();
+        }
+
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteStream(int id)
         {

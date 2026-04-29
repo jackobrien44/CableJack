@@ -128,6 +128,16 @@ namespace CableJack.Infrastructure.Services
             return true;
         }
 
+        public async Task StopAllUserStreamsAsync(int userId)
+        {
+            var active = await db.Streams
+                .Where(s => s.UserId == userId &&
+                            (s.Status == StreamStatus.Running || s.Status == StreamStatus.Starting))
+                .ToListAsync();
+
+            await Task.WhenAll(active.Select(s => ffmpegService.StopAsync(s.Id)));
+        }
+
         public async Task<PagedResult<StreamResponse>> GetAllStreamsAsync(PaginationParams pagination)
         {
             return await db.Streams
