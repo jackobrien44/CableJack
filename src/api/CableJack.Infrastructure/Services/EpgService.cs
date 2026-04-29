@@ -173,8 +173,8 @@ namespace CableJack.Infrastructure.Services
             ChannelName = p.Channel.Name,
             Title = p.Title,
             Description = p.Description,
-            StartTime = p.StartTime,
-            EndTime = p.EndTime,
+            StartTime = DateTime.SpecifyKind(p.StartTime, DateTimeKind.Utc),
+            EndTime = DateTime.SpecifyKind(p.EndTime, DateTimeKind.Utc),
         };
     }
 }

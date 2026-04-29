@@ -11,7 +11,12 @@ export default function EpgPage() {
   })
 
   const [now] = useState(Date.now)
+  const [search, setSearch] = useState('')
   const startStream = useStartStream()
+
+  const filtered = search.trim()
+    ? (nowPlaying ?? []).filter(p => p.channelName.toLowerCase().includes(search.toLowerCase()))
+    : (nowPlaying ?? [])
 
   if (isLoading) return <div className="p-6 text-gray-400 text-sm">Loading guide…</div>
 
@@ -28,11 +33,23 @@ export default function EpgPage() {
     <div className="p-6">
       <div className="flex flex-wrap items-center justify-between mb-6 gap-2">
         <h1 className="text-xl font-semibold text-white">TV Guide</h1>
-        <span className="text-gray-500 text-xs">Now playing · updates every minute</span>
+        <div className="flex items-center gap-3">
+          <input
+            type="search"
+            placeholder="Filter channels…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="bg-gray-800 text-white text-sm placeholder-gray-500 border border-gray-700 rounded-lg px-3 py-1.5 focus:outline-none focus:border-gray-500 w-48"
+          />
+          <span className="text-gray-500 text-xs">Now playing · updates every minute</span>
+        </div>
       </div>
 
+      {filtered.length === 0 && (
+        <p className="text-gray-500 text-sm">No channels match your search.</p>
+      )}
       <div className="space-y-2">
-        {nowPlaying.map(programme => (
+        {filtered.map(programme => (
           <div
             key={programme.id}
             className="bg-gray-800 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
