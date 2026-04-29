@@ -9,6 +9,7 @@ namespace CableJack.Core.Models
         public required StreamStatus Status { get; set; }
         public required int ChannelId { get; set; }
         public required int UserId { get; set; }
+        public int? ProcessId { get; set; }
 
         public Channel Channel { get; set; } = null!;
         public User User { get; set; } = null!;

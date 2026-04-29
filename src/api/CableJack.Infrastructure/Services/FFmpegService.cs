@@ -72,6 +72,7 @@ namespace CableJack.Infrastructure.Services
             process.BeginErrorReadLine();
             _processes[streamId] = process;
 
+            await UpdateStreamAsync(streamId, StreamStatus.Starting, processId: process.Id);
             _logger.LogInformation("[stream:{StreamId}] ffmpeg started (pid {Pid}), waiting for playlist at {Path}", streamId, process.Id, playlistPath);
 
             // Wait until FFmpeg writes the first playlist before marking as Running
@@ -160,7 +161,7 @@ namespace CableJack.Infrastructure.Services
             await UpdateStreamAsync(streamId, exitCode == 0 ? StreamStatus.Stopped : StreamStatus.Error);
         }
 
-        private async Task UpdateStreamAsync(int streamId, StreamStatus status, string? url = null)
+        private async Task UpdateStreamAsync(int streamId, StreamStatus status, string? url = null, int? processId = null)
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<CableJackDbContext>();
@@ -170,9 +171,11 @@ namespace CableJack.Infrastructure.Services
 
             stream.Status = status;
             if (url is not null) stream.Url = url;
+            if (processId is not null) stream.ProcessId = processId;
 
             if (status is StreamStatus.Stopped or StreamStatus.Error)
             {
+                stream.ProcessId = null;
                 var openEntry = await db.WatchHistory
                     .Where(w => w.UserId == stream.UserId && w.ChannelId == stream.ChannelId && w.StoppedAt == null)
                     .OrderByDescending(w => w.StartedAt)

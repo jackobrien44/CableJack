@@ -110,6 +110,27 @@ public static class ServiceExtensions
         var db = scope.ServiceProvider.GetRequiredService<CableJackDbContext>();
         await db.Database.MigrateAsync();
 
+        var orphanedPids = await db.Streams
+            .Where(s => s.ProcessId != null)
+            .Select(s => s.ProcessId!.Value)
+            .ToListAsync();
+
+        foreach (var pid in orphanedPids)
+        {
+            try
+            {
+                var proc = System.Diagnostics.Process.GetProcessById(pid);
+                proc.Kill(entireProcessTree: true);
+                await proc.WaitForExitAsync();
+                proc.Dispose();
+                app.Logger.LogInformation("Killed orphaned ffmpeg process {Pid}", pid);
+            }
+            catch (Exception ex)
+            {
+                app.Logger.LogWarning(ex, "Failed to kill ffmpeg process {Pid} (may have already exited)", pid);
+            }
+        }
+
         var streamsDir = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "streams");
         Directory.CreateDirectory(streamsDir);
         foreach (var dir in Directory.GetDirectories(streamsDir))
