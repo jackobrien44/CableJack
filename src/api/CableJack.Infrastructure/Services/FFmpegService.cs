@@ -42,8 +42,9 @@ namespace CableJack.Infrastructure.Services
 
             var args = string.Join(" ",
                 $"-i \"{sourceUrl}\"",
-                "-c copy",
-                "-bsf:a aac_adtstoasc",
+                "-c:v copy",
+                "-c:a aac",
+                "-b:a 128k",
                 "-f hls",
                 $"-hls_time {_settings.HlsTime}",
                 $"-hls_list_size {_settings.HlsListSize}",
