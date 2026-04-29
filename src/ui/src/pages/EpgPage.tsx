@@ -1,5 +1,5 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
 import { epgApi } from '../api/epg'
 import { useStartStream } from '../hooks/useStartStream'
 
@@ -10,6 +10,7 @@ export default function EpgPage() {
     refetchInterval: 60_000,
   })
 
+  const [now] = useState(Date.now)
   const startStream = useStartStream()
 
   if (isLoading) return <div className="p-6 text-gray-400 text-sm">Loading guide…</div>
@@ -53,7 +54,7 @@ export default function EpgPage() {
               <p className="text-gray-400 text-xs">
                 {fmtTime(programme.startTime)} – {fmtTime(programme.endTime)}
               </p>
-              <ProgressBar start={programme.startTime} end={programme.endTime} />
+              <ProgressBar start={programme.startTime} end={programme.endTime} now={now} />
             </div>
 
             <button
@@ -70,8 +71,7 @@ export default function EpgPage() {
   )
 }
 
-function ProgressBar({ start, end }: { start: string; end: string }) {
-  const now = useMemo(() => Date.now(), [])
+function ProgressBar({ start, end, now }: { start: string; end: string; now: number }) {
   const startMs = new Date(start).getTime()
   const endMs = new Date(end).getTime()
   const pct = Math.min(100, Math.max(0, ((now - startMs) / (endMs - startMs)) * 100))
