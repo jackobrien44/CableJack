@@ -23,7 +23,7 @@ namespace CableJack.Infrastructure.Services
                 query = query.Where(c => c.ProviderId == providerId);
 
             if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(c => c.Name.Contains(search) || (c.TvgId != null && c.TvgId.Contains(search)));
+                query = query.Where(c => EF.Functions.Like(c.Name, $"%{search}%"));
 
             return await query
                 .OrderBy(c => c.SortOrder)
