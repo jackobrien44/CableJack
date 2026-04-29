@@ -1,4 +1,4 @@
-import { createContext, useCallback, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { authApi } from '../api/auth'
 import type { UserResponse } from '../types/api'
 
@@ -14,18 +14,24 @@ interface AuthContextValue extends AuthState {
   isAdmin: boolean
 }
 
-export const AuthContext = createContext<AuthContextValue | null>(null)
+const AuthContext = createContext<AuthContextValue | null>(null)
+
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used inside AuthProvider')
+  return ctx
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({ user: null, isLoading: true })
+  const [state, setState] = useState<AuthState>(() => ({
+    user: null,
+    isLoading: !!localStorage.getItem('accessToken'),
+  }))
 
   // On mount, validate stored token by fetching the user profile
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
-    if (!token) {
-      setState({ user: null, isLoading: false })
-      return
-    }
+    if (!token) return
     import('../api/user').then(({ userApi }) =>
       userApi.getMe()
         .then(user => setState({ user, isLoading: false }))

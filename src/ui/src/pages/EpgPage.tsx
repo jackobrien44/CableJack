@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { epgApi } from '../api/epg'
 import { useStartStream } from '../hooks/useStartStream'
 
@@ -70,7 +71,7 @@ export default function EpgPage() {
 }
 
 function ProgressBar({ start, end }: { start: string; end: string }) {
-  const now = Date.now()
+  const now = useMemo(() => Date.now(), [])
   const startMs = new Date(start).getTime()
   const endMs = new Date(end).getTime()
   const pct = Math.min(100, Math.max(0, ((now - startMs) / (endMs - startMs)) * 100))
