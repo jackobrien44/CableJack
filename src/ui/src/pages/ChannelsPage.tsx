@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
@@ -10,7 +10,9 @@ import { ChannelCard } from '../components/ChannelCard'
 import { useStartStream } from '../hooks/useStartStream'
 import type { ChannelResponse } from '../types/api'
 
-const PAGE_SIZE = 48
+const MIN_CARD_W = 160
+const MIN_CARD_H = 155
+const GAP = 12
 
 export default function ChannelsPage() {
   const queryClient = useQueryClient()
@@ -22,7 +24,33 @@ export default function ChannelsPage() {
   const providerId = searchParams.get('provider') ? Number(searchParams.get('provider')) : undefined
   const page = searchParams.get('page') ? Number(searchParams.get('page')) : 1
   const [inputValue, setInputValue] = useState(search)
+  const [showCategories, setShowCategories] = useState(true)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const gridContainerRef = useRef<HTMLDivElement>(null)
+  const [gridDims, setGridDims] = useState({ cols: 6, rows: 4 })
+
+  useEffect(() => {
+    const el = gridContainerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      const cols = Math.max(2, Math.floor((width + GAP) / (MIN_CARD_W + GAP)))
+      const rows = Math.max(1, Math.floor((height + GAP) / (MIN_CARD_H + GAP)))
+      setGridDims(prev => prev.cols === cols && prev.rows === rows ? prev : { cols, rows })
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  const pageSize = gridDims.cols * gridDims.rows
+
+  const prevPageSizeRef = useRef(pageSize)
+  useEffect(() => {
+    if (prevPageSizeRef.current !== pageSize) {
+      prevPageSizeRef.current = pageSize
+      setPage(1)
+    }
+  }, [pageSize])
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
@@ -35,8 +63,9 @@ export default function ChannelsPage() {
   })
 
   const { data, isLoading } = useQuery({
-    queryKey: ['channels', search, categoryId, providerId, page],
-    queryFn: () => channelsApi.getAll({ page, pageSize: PAGE_SIZE, search: search || undefined, categoryId, providerId }),
+    queryKey: ['channels', search, categoryId, providerId, page, pageSize],
+    queryFn: () => channelsApi.getAll({ page, pageSize, search: search || undefined, categoryId, providerId }),
+    enabled: pageSize > 0,
   })
 
   const { data: favorites } = useQuery({
@@ -98,13 +127,13 @@ export default function ChannelsPage() {
   }
 
   const channels = data?.items ?? []
-  const totalPages = data ? Math.ceil(data.totalCount / PAGE_SIZE) : 1
+  const totalPages = data && pageSize > 0 ? Math.ceil(data.totalCount / pageSize) : 1
   const categories = categoriesData?.items ?? []
   const providers = providersData ?? []
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-4 gap-4">
+    <div className="h-svh flex flex-col overflow-hidden px-6">
+      <div className="flex items-center justify-between pt-6 pb-4 gap-4 shrink-0">
         <h1 className="text-xl font-semibold text-white shrink-0">Channels</h1>
         <div className="flex items-center gap-2">
           {providers.length > 0 && (
@@ -130,34 +159,56 @@ export default function ChannelsPage() {
       </div>
 
       {categories.length > 0 && (
-        <div className="flex gap-2 flex-wrap mb-5">
+        <div className="mb-4 shrink-0">
           <button
-            onClick={() => setCategoryId(undefined)}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-              categoryId === undefined ? 'bg-violet-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
-            }`}
+            onClick={() => setShowCategories(v => !v)}
+            className="flex items-center gap-1.5 text-gray-400 hover:text-white text-xs font-semibold uppercase tracking-wider mb-2 transition-colors"
           >
-            All
+            <span>{showCategories ? '▾' : '▸'}</span>
+            Categories
+            {categoryId !== undefined && !showCategories && (
+              <span className="ml-1 px-2 py-0.5 rounded-full bg-violet-600 text-white normal-case tracking-normal">
+                {categories.find(c => c.id === categoryId)?.name}
+              </span>
+            )}
           </button>
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setCategoryId(cat.id === categoryId ? undefined : cat.id)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                categoryId === cat.id ? 'bg-violet-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
+          {showCategories && (
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setCategoryId(undefined)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  categoryId === undefined ? 'bg-violet-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+                }`}
+              >
+                All
+              </button>
+              {categories.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setCategoryId(cat.id === categoryId ? undefined : cat.id)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    categoryId === cat.id ? 'bg-violet-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {isLoading && <div className="text-gray-400 text-sm">Loading channels…</div>}
+      {isLoading && <div className="text-gray-400 text-sm flex-1">Loading channels…</div>}
 
       {channels.length > 0 && (
-        <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+        <div ref={gridContainerRef} className="flex-1 min-h-0 overflow-hidden">
+          <div
+            className="h-full grid gap-3"
+            style={{
+              gridTemplateColumns: `repeat(${gridDims.cols}, 1fr)`,
+              gridTemplateRows: `repeat(${gridDims.rows}, 1fr)`,
+            }}
+          >
             {channels.map(channel => (
               <ChannelCard
                 key={channel.id}
@@ -169,25 +220,25 @@ export default function ChannelsPage() {
               />
             ))}
           </div>
-
-          {totalPages > 1 && (
-            <div className="mt-6 flex items-center justify-center gap-1">
-              <PageButton onClick={() => setPage(page - 1)} disabled={page === 1}>‹</PageButton>
-              {pageNumbers(page, totalPages).map((p, i) =>
-                p === '…' ? (
-                  <span key={`ellipsis-${i}`} className="px-2 text-gray-600">…</span>
-                ) : (
-                  <PageButton key={p} onClick={() => setPage(p as number)} active={p === page}>{p}</PageButton>
-                )
-              )}
-              <PageButton onClick={() => setPage(page + 1)} disabled={page === totalPages}>›</PageButton>
-            </div>
-          )}
-        </>
+        </div>
       )}
 
       {!isLoading && channels.length === 0 && (
-        <div className="text-gray-500 text-sm">No channels found.</div>
+        <div className="text-gray-500 text-sm flex-1">No channels found.</div>
+      )}
+
+      {channels.length > 0 && totalPages > 1 && (
+        <div className="py-3 flex items-center justify-center gap-1 shrink-0">
+          <PageButton onClick={() => setPage(page - 1)} disabled={page === 1}>‹</PageButton>
+          {pageNumbers(page, totalPages).map((p, i) =>
+            p === '…' ? (
+              <span key={`ellipsis-${i}`} className="px-2 text-gray-600">…</span>
+            ) : (
+              <PageButton key={p} onClick={() => setPage(p as number)} active={p === page}>{p}</PageButton>
+            )
+          )}
+          <PageButton onClick={() => setPage(page + 1)} disabled={page === totalPages}>›</PageButton>
+        </div>
       )}
     </div>
   )

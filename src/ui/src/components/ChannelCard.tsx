@@ -10,11 +10,11 @@ interface ChannelCardProps {
 
 export function ChannelCard({ channel, isFavorite, onPlay, onToggleFavorite, isStarting }: ChannelCardProps) {
   return (
-    <div className="bg-gray-800 rounded-xl overflow-hidden group">
+    <div className="h-full flex flex-col bg-gray-800 rounded-xl overflow-hidden group">
       <button
         onClick={onPlay}
         disabled={isStarting}
-        className="w-full aspect-video bg-gray-900 flex items-center justify-center relative overflow-hidden"
+        className="flex-1 min-h-0 w-full bg-gray-900 flex items-center justify-center relative overflow-hidden"
       >
         {channel.logoUrl ? (
           <img
