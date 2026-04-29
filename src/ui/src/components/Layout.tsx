@@ -11,7 +11,6 @@ const navItems: NavItem[] = [
   { to: '/', label: 'Channels', icon: '📺' },
   { to: '/guide', label: 'TV Guide', icon: '📋' },
   { to: '/favorites', label: 'Favorites', icon: '⭐' },
-  { to: '/history', label: 'History', icon: '🕐' },
   { to: '/profile', label: 'Profile', icon: '👤' },
 ]
 
