@@ -45,6 +45,19 @@ public static class ServiceExtensions
                     QueueLimit = 0,
                 }));
 
+            options.AddPolicy("stream-start", httpContext => RateLimitPartition.GetSlidingWindowLimiter(
+                partitionKey: httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                              ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                              ?? "unknown",
+                factory: _ => new SlidingWindowRateLimiterOptions
+                {
+                    PermitLimit = 10,
+                    Window = TimeSpan.FromMinutes(1),
+                    SegmentsPerWindow = 2,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0,
+                }));
+
             options.RejectionStatusCode = 429;
         });
 

@@ -57,21 +57,26 @@ function SettingsTab() {
   })
 
   const [registrationMode, setRegistrationMode] = useState<SystemSettingsDto['registrationMode'] | null>(null)
+  const [maxConcurrentStreams, setMaxConcurrentStreams] = useState<number | null>(null)
 
   const currentMode = registrationMode ?? settings?.registrationMode ?? 'Open'
+  const currentMax = maxConcurrentStreams ?? settings?.maxConcurrentStreams ?? 2
 
   const update = useMutation({
     mutationFn: (body: SystemSettingsDto) => adminApi.updateSettings(body),
     onSuccess: (data) => {
       queryClient.setQueryData(['admin-settings'], data)
       setRegistrationMode(null)
+      setMaxConcurrentStreams(null)
       toast.success('Settings saved.')
     },
   })
 
   if (isLoading) return <div className="text-gray-400 text-sm">Loading…</div>
 
-  const dirty = registrationMode !== null && registrationMode !== settings?.registrationMode
+  const dirty =
+    (registrationMode !== null && registrationMode !== settings?.registrationMode) ||
+    (maxConcurrentStreams !== null && maxConcurrentStreams !== settings?.maxConcurrentStreams)
 
   return (
     <div className="max-w-md space-y-6">
@@ -89,15 +94,32 @@ function SettingsTab() {
             <option value="Disabled">Disabled — no new registrations</option>
           </select>
         </div>
-        {update.error && <p className="text-red-400 text-sm">{update.error.message}</p>}
-        <button
-          onClick={() => update.mutate({ registrationMode: currentMode })}
-          disabled={!dirty || update.isPending}
-          className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
-        >
-          {update.isPending ? 'Saving…' : 'Save'}
-        </button>
       </div>
+
+      <div className="bg-gray-800 rounded-xl p-5 space-y-4">
+        <h2 className="text-white font-medium">Streaming</h2>
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">Max concurrent streams per user</label>
+          <input
+            type="number"
+            min={1}
+            max={20}
+            value={currentMax}
+            onChange={e => setMaxConcurrentStreams(Math.max(1, parseInt(e.target.value) || 1))}
+            className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500 w-32"
+          />
+          <p className="text-gray-500 text-xs mt-1">How many streams a single user can run at the same time.</p>
+        </div>
+      </div>
+
+      {update.error && <p className="text-red-400 text-sm">{update.error.message}</p>}
+      <button
+        onClick={() => update.mutate({ registrationMode: currentMode, maxConcurrentStreams: currentMax })}
+        disabled={!dirty || update.isPending}
+        className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+      >
+        {update.isPending ? 'Saving…' : 'Save'}
+      </button>
     </div>
   )
 }

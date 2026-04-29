@@ -117,6 +117,7 @@ export interface WatchHistoryResponse {
 
 export interface SystemSettingsDto {
   registrationMode: 'Open' | 'InviteOnly' | 'Disabled'
+  maxConcurrentStreams: number
 }
 
 export interface ImportResult {

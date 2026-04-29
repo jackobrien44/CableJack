@@ -3,6 +3,7 @@ using CableJack.Core.DTOs;
 using CableJack.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace CableJack.Api.Controllers
 {
@@ -30,6 +31,7 @@ namespace CableJack.Api.Controllers
         }
 
         [HttpPost]
+        [EnableRateLimiting("stream-start")]
         public async Task<ActionResult<StreamResponse>> StartStream([FromBody] StartStreamRequest request)
         {
             var userId = GetUserId();

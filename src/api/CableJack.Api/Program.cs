@@ -29,8 +29,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseStreamStaticFiles();
-app.UseRateLimiter();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
 app.MapFallbackToFile("index.html");

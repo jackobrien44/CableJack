@@ -9,7 +9,7 @@ using Stream = CableJack.Core.Models.Stream;
 
 namespace CableJack.Infrastructure.Services
 {
-    public sealed class StreamService(CableJackDbContext db, IFFmpegService ffmpegService) : IStreamService
+    public sealed class StreamService(CableJackDbContext db, IFFmpegService ffmpegService, ISettingsService settingsService) : IStreamService
     {
         public async Task<List<StreamResponse>> GetUserStreamsAsync(int userId)
         {
@@ -33,6 +33,15 @@ namespace CableJack.Infrastructure.Services
 
         public async Task<StreamResponse> StartStreamAsync(int channelId, int userId)
         {
+            var settings = await settingsService.GetSettingsAsync();
+            var activeCount = await db.Streams.CountAsync(s =>
+                s.UserId == userId &&
+                (s.Status == StreamStatus.Running || s.Status == StreamStatus.Starting));
+
+            if (activeCount >= settings.MaxConcurrentStreams)
+                throw new InvalidOperationException(
+                    $"Stream limit reached. You may have at most {settings.MaxConcurrentStreams} active stream{(settings.MaxConcurrentStreams != 1 ? "s" : "")}.");
+
             var channel = await db.Channels.FindAsync(channelId)
                 ?? throw new InvalidOperationException("Channel not found.");
 
