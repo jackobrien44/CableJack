@@ -11,7 +11,6 @@ import type { ChannelResponse } from '../types/api'
 const PAGE_SIZE = 48
 
 export default function ChannelsPage() {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')

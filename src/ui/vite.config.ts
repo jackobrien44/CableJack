@@ -10,7 +10,10 @@ export default defineConfig({
         target: 'https://localhost:7248',
         secure: false,
       },
+      '/streams': {
+        target: 'https://localhost:7248',
+        secure: false,
+      },
     },
   },
 })
-wh
