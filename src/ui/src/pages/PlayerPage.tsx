@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { MediaPlayer, MediaProvider } from '@vidstack/react'
+import { MediaPlayer, MediaProvider, isHLSProvider } from '@vidstack/react'
 import type { MediaPlayerInstance } from '@vidstack/react'
 import { DefaultVideoLayout, defaultLayoutIcons } from '@vidstack/react/player/layouts/default'
 import '@vidstack/react/player/styles/default/theme.css'
@@ -15,18 +15,26 @@ export default function PlayerPage() {
   const channelId = Number(id)
   const navigate = useNavigate()
   const startedRef = useRef(false)
+  const cancelledRef = useRef(false)
   const [streamId, setStreamId] = useState<number | null>(null)
   const [startError, setStartError] = useState<string | null>(null)
   const ffmpegPaused = useRef(false)
   const [showSidebar, setShowSidebar] = useState(false)
   const playerRef = useRef<MediaPlayerInstance>(null)
+  const [resolution, setResolution] = useState<string | null>(null)
 
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
     streamsApi.start(channelId)
-      .then(s => setStreamId(s.id))
-      .catch(() => setStartError('Failed to start stream.'))
+      .then(s => {
+        if (cancelledRef.current) {
+          streamsApi.stop(s.id).catch(() => {})
+        } else {
+          setStreamId(s.id)
+        }
+      })
+      .catch(() => { if (!cancelledRef.current) setStartError('Failed to start stream.') })
   }, [channelId])
 
   const { data: stream } = useQuery({
@@ -63,10 +71,24 @@ export default function PlayerPage() {
   const pause = useMutation({ mutationFn: () => streamsApi.pause(streamId!) })
   const resume = useMutation({ mutationFn: () => streamsApi.resume(streamId!) })
 
+  useEffect(() => {
+    return playerRef.current?.subscribe(({ quality }) => {
+      setResolution(quality?.height ? `${quality.height}p` : null)
+    })
+  }, [])
+
   const upcomingList = upcoming?.filter(p => p.id !== nowPlaying?.id) ?? []
   const isRunning = stream?.status === 'Running' && !!stream?.url
   const isStarting = (startError == null && streamId == null) || stream?.status === 'Starting'
 
+  function handleExit() {
+    if (streamId !== null) {
+      stop.mutate()
+    } else {
+      cancelledRef.current = true
+      navigate(-1)
+    }
+  }
 
   return (
     <div className="flex flex-col md:flex-row bg-gray-950 h-svh overflow-hidden">
@@ -76,18 +98,37 @@ export default function PlayerPage() {
 
         {/* Status overlays */}
         {isStarting && (
-          <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm pointer-events-none z-10">
-            Starting stream…
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10">
+            <p className="text-gray-400 text-sm pointer-events-none">Starting stream…</p>
+            <button
+              onClick={handleExit}
+              className="text-gray-500 hover:text-white text-xs px-3 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition-colors"
+            >
+              Cancel
+            </button>
           </div>
         )}
         {stream?.status === 'Error' && (
-          <div className="absolute inset-0 flex items-center justify-center text-red-400 text-sm pointer-events-none z-10">
-            Stream error. The source may be unavailable.
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10">
+            <p className="text-red-400 text-sm pointer-events-none">Stream error. The source may be unavailable.</p>
+            <button
+              onClick={handleExit}
+              disabled={stop.isPending}
+              className="text-gray-500 hover:text-white text-xs px-3 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition-colors"
+            >
+              Go back
+            </button>
           </div>
         )}
         {startError && (
-          <div className="absolute inset-0 flex items-center justify-center text-red-400 text-sm pointer-events-none z-10">
-            {startError}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10">
+            <p className="text-red-400 text-sm pointer-events-none">{startError}</p>
+            <button
+              onClick={handleExit}
+              className="text-gray-500 hover:text-white text-xs px-3 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition-colors"
+            >
+              Go back
+            </button>
           </div>
         )}
 
@@ -97,6 +138,11 @@ export default function PlayerPage() {
           src={isRunning ? { src: stream.url, type: 'application/x-mpegurl' } : undefined}
           minLiveDVRWindow={30}
           className="w-full h-full dark"
+          onProviderSetup={e => {
+            if (isHLSProvider(e.detail)) {
+              e.detail.config = { liveSyncDurationCount: 4 }
+            }
+          }}
           onCanPlay={() => playerRef.current?.play()}
           onPause={() => { ffmpegPaused.current = true; pause.mutate() }}
           onPlay={() => {
@@ -123,8 +169,14 @@ export default function PlayerPage() {
                 </button>
               ),
               afterFullscreenButton: (
-                <button
-                  onClick={() => setShowSidebar(v => !v)}
+                <>
+                  {resolution && (
+                    <span className="vds-button text-xs text-gray-300 pointer-events-none select-none px-1">
+                      {resolution}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setShowSidebar(v => !v)}
                   className="vds-button"
                   title={showSidebar ? 'Hide info' : 'Show info'}
                   aria-label="Toggle sidebar"
@@ -136,6 +188,7 @@ export default function PlayerPage() {
                     }
                   </svg>
                 </button>
+                </>
               ),
             }}
           />
