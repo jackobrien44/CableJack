@@ -291,7 +291,7 @@ function ProvidersTab() {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<ProviderResponse | null>(null)
-  const [importResults, setImportResults] = useState<Record<number, ImportResult>>({})
+  const [importResults, setImportResults] = useState<Record<string, ImportResult>>({})
 
   const { data: providers = [], isLoading } = useQuery({
     queryKey: ['providers'],
@@ -327,6 +327,13 @@ function ProvidersTab() {
     },
   })
 
+  const importEpg = useMutation({
+    mutationFn: (id: number) => providersApi.importEpg(id),
+    onSuccess: (result, id) => {
+      setImportResults(prev => ({ ...prev, [`epg-${id}`]: result }))
+    },
+  })
+
   if (isLoading) return <div className="text-gray-400 text-sm">Loading…</div>
 
   return (
@@ -355,13 +362,22 @@ function ProvidersTab() {
               </div>
               <div className="flex gap-3 shrink-0 items-center">
                 {p.baseUrl && p.username && p.password && (
-                  <button
-                    onClick={() => importProvider.mutate(p.id)}
-                    disabled={importProvider.isPending && importProvider.variables === p.id}
-                    className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    {importProvider.isPending && importProvider.variables === p.id ? 'Importing…' : 'Import'}
-                  </button>
+                  <>
+                    <button
+                      onClick={() => importProvider.mutate(p.id)}
+                      disabled={importProvider.isPending && importProvider.variables === p.id}
+                      className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      {importProvider.isPending && importProvider.variables === p.id ? 'Importing…' : 'Import'}
+                    </button>
+                    <button
+                      onClick={() => importEpg.mutate(p.id)}
+                      disabled={importEpg.isPending && importEpg.variables === p.id}
+                      className="bg-gray-600 hover:bg-gray-500 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      {importEpg.isPending && importEpg.variables === p.id ? 'Importing EPG…' : 'Import EPG'}
+                    </button>
+                  </>
                 )}
                 <button
                   onClick={() => setEditing(p)}
@@ -383,13 +399,24 @@ function ProvidersTab() {
             {importProvider.isError && importProvider.variables === p.id && (
               <p className="text-red-400 text-xs mt-2">{importProvider.error?.message}</p>
             )}
+            {importEpg.isError && importEpg.variables === p.id && (
+              <p className="text-red-400 text-xs mt-2">{importEpg.error?.message}</p>
+            )}
             {importResults[p.id] && (() => {
               const r = importResults[p.id]
               return (
                 <p className="text-gray-400 text-xs mt-2">
-                  Last import: <span className="text-green-400">{r.channelsCreated} added</span>
+                  Channels: <span className="text-green-400">{r.channelsCreated} added</span>
                   {r.channelsSkipped > 0 && <span> · {r.channelsSkipped} skipped</span>}
                   {r.categoriesCreated > 0 && <span> · {r.categoriesCreated} new categories</span>}
+                </p>
+              )
+            })()}
+            {importResults[`epg-${p.id}`] && (() => {
+              const r = importResults[`epg-${p.id}`]
+              return (
+                <p className="text-gray-400 text-xs mt-1">
+                  EPG: <span className="text-green-400">{r.channelsCreated + r.channelsUpdated} programmes imported</span>
                 </p>
               )
             })()}

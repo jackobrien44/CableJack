@@ -22,4 +22,5 @@ export const providersApi = {
   update: (id: number, body: UpdateProviderRequest) => api.put<ProviderResponse>(`/providers/${id}`, body),
   delete: (id: number) => api.delete<void>(`/providers/${id}`),
   import: (id: number) => api.post<ImportResult>(`/providers/${id}/import`),
+  importEpg: (id: number) => api.post<ImportResult>(`/providers/${id}/import-epg`),
 }

@@ -2,12 +2,13 @@ using CableJack.Core.DTOs;
 using CableJack.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Http;
 
 namespace CableJack.Api.Controllers
 {
     [ApiController]
     [Route("api/providers")]
-    public class ProviderController(IProviderService providerService, IImportService importService) : ControllerBase
+    public class ProviderController(IProviderService providerService, IImportService importService, IEpgService epgService) : ControllerBase
     {
         [HttpGet]
         [Authorize]
@@ -72,6 +73,33 @@ namespace CableJack.Api.Controllers
 
             using var stream = await response.Content.ReadAsStreamAsync();
             var result = await importService.ImportM3UAsync(stream, id, skipExisting: true);
+            return Ok(result);
+        }
+
+        [HttpPost("{id:int}/import-epg")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<ActionResult<ImportResult>> ImportEpg(int id)
+        {
+            var provider = await providerService.GetByIdAsync(id);
+            if (provider is null) return NotFound();
+
+            if (string.IsNullOrWhiteSpace(provider.BaseUrl) ||
+                string.IsNullOrWhiteSpace(provider.Username) ||
+                string.IsNullOrWhiteSpace(provider.Password))
+                return BadRequest(new { message = "Provider must have a base URL, username, and password to import EPG." });
+
+            var epgUrl = $"{provider.BaseUrl.TrimEnd('/')}/xmltv.php?username={Uri.EscapeDataString(provider.Username)}&password={Uri.EscapeDataString(provider.Password)}";
+
+            using var http = new HttpClient();
+            http.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+            http.Timeout = TimeSpan.FromSeconds(120);
+
+            using var response = await http.GetAsync(epgUrl, HttpCompletionOption.ResponseHeadersRead);
+            if (!response.IsSuccessStatusCode)
+                return BadRequest(new { message = $"Failed to fetch EPG: {(int)response.StatusCode} {response.ReasonPhrase}" });
+
+            using var stream = await response.Content.ReadAsStreamAsync();
+            var result = await epgService.ImportXmltvAsync(stream);
             return Ok(result);
         }
     }
