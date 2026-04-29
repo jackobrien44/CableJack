@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Toaster, toast } from 'sonner'
 import { AuthProvider } from './context/AuthContext'
-import { ToastProvider } from './context/ToastContext'
-import { useToast } from './hooks/useToast'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
@@ -18,8 +17,7 @@ import RegisterPage from './pages/RegisterPage'
 import { ApiError } from './api/client'
 import { useStopStreamsOnExit } from './hooks/useStopStreamsOnExit'
 
-function AppWithToast() {
-  const { toast } = useToast()
+export default function App() {
   useStopStreamsOnExit()
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
@@ -30,7 +28,7 @@ function AppWithToast() {
       mutations: {
         onError: (err) => {
           const msg = err instanceof ApiError ? err.message : 'Something went wrong.'
-          toast(msg, 'error')
+          toast.error(msg)
         },
       },
     },
@@ -60,15 +58,13 @@ function AppWithToast() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
+        <Toaster
+          theme="dark"
+          position="bottom-right"
+          richColors
+          toastOptions={{ style: { fontFamily: "system-ui, 'Segoe UI', sans-serif" } }}
+        />
       </AuthProvider>
     </QueryClientProvider>
-  )
-}
-
-export default function App() {
-  return (
-    <ToastProvider>
-      <AppWithToast />
-    </ToastProvider>
   )
 }

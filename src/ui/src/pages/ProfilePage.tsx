@@ -1,13 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { userApi } from '../api/user'
 import { useAuth } from '../hooks/useAuth'
-import { useToast } from '../hooks/useToast'
 import { ApiError } from '../api/client'
 
 export default function ProfilePage() {
   const { user } = useAuth()
-  const { toast } = useToast()
 
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
@@ -16,20 +15,20 @@ export default function ProfilePage() {
   const changePassword = useMutation({
     mutationFn: () => userApi.changePassword(current, next),
     onSuccess: () => {
-      toast('Password changed.', 'success')
+      toast.success('Password changed.')
       setCurrent('')
       setNext('')
       setConfirm('')
     },
     onError: (err) => {
-      toast(err instanceof ApiError ? err.message : 'Failed to change password.', 'error')
+      toast.error(err instanceof ApiError ? err.message : 'Failed to change password.')
     },
   })
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (next !== confirm) {
-      toast('New passwords do not match.', 'error')
+      toast.error('New passwords do not match.')
       return
     }
     changePassword.mutate()

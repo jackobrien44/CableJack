@@ -1,5 +1,7 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useMemo, type FormEvent } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import type { UserStatDto } from '../types/api'
 import { adminApi, type UpdateUserRequest, type CreateUserRequest } from '../api/admin'
 import { channelsApi } from '../api/channels'
@@ -48,7 +50,6 @@ export default function AdminPage() {
 
 function SettingsTab() {
   const queryClient = useQueryClient()
-  const [saved, setSaved] = useState(false)
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['admin-settings'],
@@ -64,8 +65,7 @@ function SettingsTab() {
     onSuccess: (data) => {
       queryClient.setQueryData(['admin-settings'], data)
       setRegistrationMode(null)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      toast.success('Settings saved.')
     },
   })
 
@@ -90,16 +90,13 @@ function SettingsTab() {
           </select>
         </div>
         {update.error && <p className="text-red-400 text-sm">{update.error.message}</p>}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => update.mutate({ registrationMode: currentMode })}
-            disabled={!dirty || update.isPending}
-            className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
-          >
-            {update.isPending ? 'Saving…' : 'Save'}
-          </button>
-          {saved && <span className="text-green-400 text-sm">Saved</span>}
-        </div>
+        <button
+          onClick={() => update.mutate({ registrationMode: currentMode })}
+          disabled={!dirty || update.isPending}
+          className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+        >
+          {update.isPending ? 'Saving…' : 'Save'}
+        </button>
       </div>
     </div>
   )
@@ -122,8 +119,25 @@ function DashboardTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-streams'] })
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] })
+      toast.success('Stream stopped.')
     },
   })
+
+  const activityData = useMemo(() => {
+    const now = Date.now()
+    const buckets = Array.from({ length: 24 }, (_, i) => ({
+      label: new Date(now - (23 - i) * 3_600_000).getHours().toString().padStart(2, '0') + ':00',
+      sessions: 0,
+    }))
+    recentHistory?.forEach(h => {
+      const msSince = now - new Date(h.startedAt).getTime()
+      if (msSince >= 0 && msSince < 24 * 3_600_000) {
+        const idx = 23 - Math.floor(msSince / 3_600_000)
+        if (idx >= 0 && idx < 24) buckets[idx].sessions++
+      }
+    })
+    return buckets
+  }, [recentHistory])
 
   const activeStreams = (streamsData?.items ?? []).filter(s => s.status === 'Running' || s.status === 'Starting')
 
@@ -182,6 +196,45 @@ function DashboardTab() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
+        {/* Activity chart — full width */}
+        <div className="lg:col-span-2">
+          <Section title="Activity (24h)" hint="based on last 30 sessions">
+            <div className="px-2 pt-2 pb-4">
+              <ResponsiveContainer width="100%" height={150}>
+                <BarChart data={activityData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 10, fill: '#6b7280' }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval={3}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: '#6b7280' }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) return null
+                      const v = payload[0].value as number
+                      return (
+                        <div style={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 8, padding: '6px 10px', fontSize: 12 }}>
+                          <p style={{ color: '#9ca3af', marginBottom: 2 }}>{label}</p>
+                          <p style={{ color: '#a78bfa' }}>{v} session{v !== 1 ? 's' : ''}</p>
+                        </div>
+                      )
+                    }}
+                  />
+                  <Bar dataKey="sessions" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Section>
+        </div>
+
         {/* Active streams — full width */}
         <div className="lg:col-span-2">
           <Section title="Active Streams" badge={activeStreams.length} hint="auto-refreshes every 10s">
@@ -221,21 +274,46 @@ function DashboardTab() {
           {!topChannels?.length
             ? <Empty>No watch history yet.</Empty>
             : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead><tr className="border-b border-gray-700">
-                    <Th>Channel</Th><Th right>Sessions</Th><Th right>Watch time</Th>
-                  </tr></thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {topChannels.map((c, i) => (
-                      <tr key={i} className="hover:bg-gray-750">
-                        <Td><span className="text-white">{c.channelName}</span></Td>
-                        <Td right>{c.sessionCount}</Td>
-                        <Td right>{fmtMinutes(c.totalMinutes)}</Td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="px-2 pt-2 pb-4">
+                <ResponsiveContainer width="100%" height={Math.max(160, topChannels.length * 34 + 24)}>
+                  <BarChart
+                    layout="vertical"
+                    data={topChannels}
+                    margin={{ top: 0, right: 16, bottom: 0, left: 0 }}
+                  >
+                    <XAxis
+                      type="number"
+                      tick={{ fontSize: 10, fill: '#6b7280' }}
+                      axisLine={false}
+                      tickLine={false}
+                      allowDecimals={false}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="channelName"
+                      width={110}
+                      tick={{ fontSize: 11, fill: '#d1d5db' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v: string) => v.length > 16 ? v.slice(0, 14) + '…' : v}
+                    />
+                    <Tooltip
+                      cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null
+                        const d = payload[0].payload
+                        return (
+                          <div style={{ background: '#1f2937', border: '1px solid #374151', borderRadius: 8, padding: '6px 10px', fontSize: 12 }}>
+                            <p style={{ color: '#e5e7eb', marginBottom: 4 }}>{d.channelName}</p>
+                            <p style={{ color: '#a78bfa' }}>{d.sessionCount} session{d.sessionCount !== 1 ? 's' : ''}</p>
+                            <p style={{ color: '#9ca3af' }}>{fmtMinutes(d.totalMinutes)}</p>
+                          </div>
+                        )
+                      }}
+                    />
+                    <Bar dataKey="sessionCount" fill="#7c3aed" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             )}
         </Section>
@@ -831,6 +909,7 @@ function UsersTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
       setShowCreateForm(false)
+      toast.success('User created.')
     },
   })
 
@@ -843,12 +922,18 @@ function UsersTab() {
   const resetPassword = useMutation({
     mutationFn: ({ userId, newPassword }: { userId: number; newPassword: string }) =>
       adminApi.resetPassword(userId, newPassword),
-    onSuccess: () => setResetPasswordUserId(null),
+    onSuccess: () => {
+      setResetPasswordUserId(null)
+      toast.success('Password reset.')
+    },
   })
 
   const deleteUser = useMutation({
     mutationFn: (userId: number) => adminApi.deleteUser(userId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      toast.success('User deleted.')
+    },
   })
 
   const users = data?.pages.flatMap(p => p.items) ?? []
