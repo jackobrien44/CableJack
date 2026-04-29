@@ -41,6 +41,7 @@ namespace CableJack.Infrastructure.Services
             var url = $"/streams/{slug}/index.m3u8";
 
             var args = string.Join(" ",
+                "-avoid_negative_ts make_zero",
                 $"-i \"{sourceUrl}\"",
                 "-c:v copy",
                 "-c:a aac",
