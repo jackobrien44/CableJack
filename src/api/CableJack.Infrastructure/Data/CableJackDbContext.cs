@@ -15,6 +15,7 @@ namespace CableJack.Infrastructure.Data
         public DbSet<UserFavorite> UserFavorites { get; set; }
         public DbSet<WatchHistory> WatchHistory { get; set; }
         public DbSet<Provider> Providers { get; set; }
+        public DbSet<SystemSetting> SystemSettings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -88,6 +89,10 @@ namespace CableJack.Infrastructure.Data
 
             modelBuilder.Entity<WatchHistory>()
                 .HasIndex(w => new { w.UserId, w.StartedAt });
+
+            modelBuilder.Entity<SystemSetting>()
+                .HasIndex(s => s.Key)
+                .IsUnique();
         }
 
     }

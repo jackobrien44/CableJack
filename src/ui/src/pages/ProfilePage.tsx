@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { userApi } from '../api/user'
 import { useAuth } from '../hooks/useAuth'
-import { useToast } from '../context/ToastContext'
+import { useToast } from '../hooks/useToast'
 import { ApiError } from '../api/client'
 
 export default function ProfilePage() {
