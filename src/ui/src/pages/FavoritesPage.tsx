@@ -1,16 +1,16 @@
-import { useRef, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
 import { ChannelCard } from '../components/ChannelCard'
 import { useStartStream } from '../hooks/useStartStream'
 
 const MIN_CARD_W = 220
-const MIN_CARD_H = 210
+const MIN_CARD_H = 240
 const GAP = 12
 
 export default function FavoritesPage() {
   const queryClient = useQueryClient()
-  const gridContainerRef = useRef<HTMLDivElement>(null)
+  const [gridEl, setGridEl] = useState<HTMLDivElement | null>(null)
   const [gridDims, setGridDims] = useState({ cols: 6, rows: 4 })
 
   const { data: favorites, isLoading } = useQuery({
@@ -27,22 +27,21 @@ export default function FavoritesPage() {
   const hasFavorites = (favorites?.length ?? 0) > 0
 
   useEffect(() => {
-    const el = gridContainerRef.current
-    if (!el) return
+    if (!gridEl) return
     const ro = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect
       const cols = Math.max(2, Math.floor((width + GAP) / (MIN_CARD_W + GAP)))
       const rows = Math.max(1, Math.floor((height + GAP) / (MIN_CARD_H + GAP)))
       setGridDims(prev => prev.cols === cols && prev.rows === rows ? prev : { cols, rows })
     })
-    ro.observe(el)
+    ro.observe(gridEl)
     return () => ro.disconnect()
-  }, [hasFavorites])
+  }, [gridEl])
 
   if (isLoading) return <div className="p-6 text-gray-400 text-sm">Loading…</div>
 
   return (
-    <div className="h-svh flex flex-col overflow-hidden px-6">
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden px-6">
       <h1 className="text-xl font-semibold text-white pt-6 pb-4 shrink-0">Favorites</h1>
 
       {!favorites?.length && (
@@ -50,7 +49,7 @@ export default function FavoritesPage() {
       )}
 
       {!!favorites?.length && (
-        <div ref={gridContainerRef} className="flex-1 min-h-0 overflow-hidden pb-6">
+        <div ref={setGridEl} className="flex-1 min-h-0 overflow-hidden pb-6">
           <div
             className="h-full grid gap-3"
             style={{

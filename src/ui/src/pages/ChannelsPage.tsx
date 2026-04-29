@@ -10,8 +10,8 @@ import { ChannelCard } from '../components/ChannelCard'
 import { useStartStream } from '../hooks/useStartStream'
 import type { ChannelResponse } from '../types/api'
 
-const MIN_CARD_W = 160
-const MIN_CARD_H = 210
+const MIN_CARD_W = 175
+const MIN_CARD_H = 240
 const GAP = 12
 
 export default function ChannelsPage() {
@@ -24,9 +24,9 @@ export default function ChannelsPage() {
   const providerId = searchParams.get('provider') ? Number(searchParams.get('provider')) : undefined
   const page = searchParams.get('page') ? Number(searchParams.get('page')) : 1
   const [inputValue, setInputValue] = useState(search)
-  const [showCategories, setShowCategories] = useState(true)
+  const [showCategories, setShowCategories] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const gridContainerRef = useRef<HTMLDivElement>(null)
+  const [gridEl, setGridEl] = useState<HTMLDivElement | null>(null)
   const [gridDims, setGridDims] = useState({ cols: 6, rows: 4 })
   const pageSize = gridDims.cols * gridDims.rows
 
@@ -108,22 +108,21 @@ export default function ChannelsPage() {
   const totalPages = data ? Math.ceil(data.totalCount / pageSize) : 1
 
   useEffect(() => {
-    const el = gridContainerRef.current
-    if (!el) return
+    if (!gridEl) return
     const ro = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect
       const cols = Math.max(1, Math.floor((width + GAP) / (MIN_CARD_W + GAP)))
       const rows = Math.max(1, Math.floor((height + GAP) / (MIN_CARD_H + GAP)))
       setGridDims(prev => prev.cols === cols && prev.rows === rows ? prev : { cols, rows })
     })
-    ro.observe(el)
+    ro.observe(gridEl)
     return () => ro.disconnect()
-  }, [])
+  }, [gridEl])
   const categories = categoriesData?.items ?? []
   const providers = providersData ?? []
 
   return (
-    <div className="h-svh flex flex-col overflow-hidden px-6">
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden px-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-6 pb-4 gap-3 shrink-0">
         <h1 className="text-xl font-semibold text-white shrink-0">Channels</h1>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
@@ -196,7 +195,7 @@ export default function ChannelsPage() {
       )}
 
       {channels.length > 0 && (
-        <div ref={gridContainerRef} className="flex-1 min-h-0 overflow-hidden">
+        <div ref={setGridEl} className="flex-1 min-h-0 overflow-hidden">
           <div
             className="h-full grid gap-3"
             style={{
@@ -219,7 +218,7 @@ export default function ChannelsPage() {
       )}
 
       {channels.length > 0 && totalPages > 1 && (
-        <div className="py-3 flex items-center justify-center gap-1 shrink-0">
+        <div className="py-3 flex items-center justify-center gap-0.5 sm:gap-1 shrink-0">
           <PageButton onClick={() => setPage(page - 1)} disabled={page === 1}>‹</PageButton>
           {pageNumbers(page, totalPages).map((p, i) =>
             p === '…' ? (
@@ -245,7 +244,7 @@ function PageButton({ onClick, disabled, active, children }: {
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`min-w-[2.25rem] h-9 px-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-30 ${
+      className={`min-w-[1.75rem] h-8 px-1 sm:min-w-[2.25rem] sm:h-9 sm:px-2 rounded-lg text-xs sm:text-sm font-medium transition-colors disabled:opacity-30 ${
         active
           ? 'bg-violet-600 text-white'
           : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
