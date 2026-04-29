@@ -126,15 +126,26 @@ function SettingsTab() {
 
 // ── Dashboard tab ─────────────────────────────────────────────────────────────
 
+function fmtRelative(iso: string | null, now: number): string {
+  if (!iso) return '—'
+  const diff = now - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
+
 function DashboardTab() {
   const queryClient = useQueryClient()
   const INTERVAL = 10_000
 
   const { data: stats } = useQuery({ queryKey: ['admin-dashboard-stats'], queryFn: adminApi.getDashboardStats, refetchInterval: INTERVAL })
   const { data: streamsData } = useQuery({ queryKey: ['admin-streams'], queryFn: () => adminApi.getActiveStreams(), refetchInterval: INTERVAL })
-  const { data: recentHistory } = useQuery({ queryKey: ['admin-recent-history'], queryFn: adminApi.getDashboardRecentHistory, refetchInterval: INTERVAL })
+  const { data: recentHistory, dataUpdatedAt: historyUpdatedAt } = useQuery({ queryKey: ['admin-recent-history'], queryFn: adminApi.getDashboardRecentHistory, refetchInterval: INTERVAL })
   const { data: topChannels } = useQuery({ queryKey: ['admin-top-channels'], queryFn: adminApi.getDashboardTopChannels, refetchInterval: INTERVAL })
-  const { data: userStats } = useQuery({ queryKey: ['admin-user-stats'], queryFn: adminApi.getDashboardUserStats, refetchInterval: INTERVAL })
+  const { data: userStats, dataUpdatedAt: userStatsUpdatedAt } = useQuery({ queryKey: ['admin-user-stats'], queryFn: adminApi.getDashboardUserStats, refetchInterval: INTERVAL })
 
   const stopStream = useMutation({
     mutationFn: (id: number) => adminApi.adminStopStream(id),
@@ -146,7 +157,7 @@ function DashboardTab() {
   })
 
   const activityData = useMemo(() => {
-    const now = Date.now()
+    const now = historyUpdatedAt
     const buckets = Array.from({ length: 24 }, (_, i) => ({
       label: new Date(now - (23 - i) * 3_600_000).getHours().toString().padStart(2, '0') + ':00',
       sessions: 0,
@@ -159,7 +170,7 @@ function DashboardTab() {
       }
     })
     return buckets
-  }, [recentHistory])
+  }, [recentHistory, historyUpdatedAt])
 
   const activeStreams = (streamsData?.items ?? []).filter(s => s.status === 'Running' || s.status === 'Starting')
 
@@ -183,16 +194,6 @@ function DashboardTab() {
   }
 
   const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString() : '—'
-  const fmtRelative = (iso: string | null) => {
-    if (!iso) return '—'
-    const diff = Date.now() - new Date(iso).getTime()
-    const mins = Math.floor(diff / 60000)
-    if (mins < 1) return 'just now'
-    if (mins < 60) return `${mins}m ago`
-    const hrs = Math.floor(mins / 60)
-    if (hrs < 24) return `${hrs}h ago`
-    return `${Math.floor(hrs / 24)}d ago`
-  }
 
   const statCards = [
     { label: 'Active Streams', value: stats?.activeStreams ?? '—', color: 'text-white' },
@@ -384,7 +385,7 @@ function DashboardTab() {
                     <Td right>{u.activeStreams > 0 ? <span className="text-green-400 font-medium">{u.activeStreams}</span> : <span className="text-gray-600">—</span>}</Td>
                     <Td right>{u.totalSessions}</Td>
                     <Td right>{fmtMinutes(u.totalMinutes)}</Td>
-                    <Td right>{fmtRelative(u.lastLoginAt)}</Td>
+                    <Td right>{fmtRelative(u.lastLoginAt, userStatsUpdatedAt)}</Td>
                     <Td right>{fmtDate(u.createdAt)}</Td>
                   </tr>
                 ))}
