@@ -38,6 +38,14 @@ namespace CableJack.Api.Controllers
             return category is null ? NotFound() : Ok(category);
         }
 
+        [HttpDelete]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> DeleteAllCategories()
+        {
+            var count = await categoryService.DeleteAllCategoriesAsync();
+            return Ok(new { deleted = count });
+        }
+
         [HttpDelete("{id:int}")]
         [Authorize(Roles = "Administrator")]
         public async Task<IActionResult> DeleteCategory(int id)

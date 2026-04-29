@@ -9,5 +9,6 @@ namespace CableJack.Core.Interfaces
         Task<CategoryResponse> CreateCategoryAsync(CreateCategoryRequest request);
         Task<CategoryResponse?> UpdateCategoryAsync(int id, UpdateCategoryRequest request);
         Task<bool> DeleteCategoryAsync(int id);
+        Task<int> DeleteAllCategoriesAsync();
     }
 }

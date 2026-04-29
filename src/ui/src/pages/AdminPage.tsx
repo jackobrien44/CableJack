@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi, type UpdateUserRequest } from '../api/admin'
 import { channelsApi } from '../api/channels'
+import { categoriesApi } from '../api/categories'
 import { useAuth } from '../hooks/useAuth'
 import type { ImportResult, UserResponse } from '../types/api'
 
@@ -51,6 +52,14 @@ function ImportsTab() {
     onSuccess: ({ deleted }) => {
       queryClient.invalidateQueries({ queryKey: ['channels'] })
       alert(`Deleted ${deleted} channel${deleted !== 1 ? 's' : ''}.`)
+    },
+  })
+
+  const clearCategories = useMutation({
+    mutationFn: () => categoriesApi.deleteAll(),
+    onSuccess: ({ deleted }) => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      alert(`Deleted ${deleted} categor${deleted !== 1 ? 'ies' : 'y'}.`)
     },
   })
 
@@ -121,17 +130,31 @@ function ImportsTab() {
       />
       <div className="bg-gray-800 rounded-xl p-5">
         <h2 className="text-white font-medium mb-3">Danger Zone</h2>
-        <button
-          onClick={() => {
-            if (confirm('Delete all channels? This cannot be undone.')) clearChannels.mutate()
-          }}
-          disabled={clearChannels.isPending}
-          className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
-        >
-          {clearChannels.isPending ? 'Deleting…' : 'Clear All Channels'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => {
+              if (confirm('Delete all channels? This cannot be undone.')) clearChannels.mutate()
+            }}
+            disabled={clearChannels.isPending}
+            className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+          >
+            {clearChannels.isPending ? 'Deleting…' : 'Clear All Channels'}
+          </button>
+          <button
+            onClick={() => {
+              if (confirm('Delete all categories? This cannot be undone.')) clearCategories.mutate()
+            }}
+            disabled={clearCategories.isPending}
+            className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+          >
+            {clearCategories.isPending ? 'Deleting…' : 'Clear All Categories'}
+          </button>
+        </div>
         {clearChannels.error && (
           <p className="text-red-400 text-sm mt-3">{clearChannels.error.message}</p>
+        )}
+        {clearCategories.error && (
+          <p className="text-red-400 text-sm mt-3">{clearCategories.error.message}</p>
         )}
       </div>
     </div>

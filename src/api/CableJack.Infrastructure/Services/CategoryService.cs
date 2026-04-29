@@ -73,6 +73,11 @@ namespace CableJack.Infrastructure.Services
             };
         }
 
+        public async Task<int> DeleteAllCategoriesAsync()
+        {
+            return await db.Categories.ExecuteDeleteAsync();
+        }
+
         public async Task<bool> DeleteCategoryAsync(int id)
         {
             var category = await db.Categories.FindAsync(id);
