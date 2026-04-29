@@ -12,5 +12,5 @@ export const authApi = {
     api.post<AuthResponse>('/auth/refresh', { refreshToken }),
 
   revoke: (refreshToken: string) =>
-    api.post<void>('/auth/revoke', { refreshToken }),
+    api.post<void>('/auth/logout', { refreshToken }),
 }

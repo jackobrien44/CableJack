@@ -61,15 +61,6 @@ export default function ChannelsPage() {
   })
   const startStream = useStartStream()
 
-  function setParam(key: string, value: string | undefined) {
-    setSearchParams(prev => {
-      const next = new URLSearchParams(prev)
-      if (value) next.set(key, value)
-      else next.delete(key)
-      return next
-    }, { replace: true })
-  }
-
   function setPage(p: number) {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev)

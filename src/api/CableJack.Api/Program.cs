@@ -29,6 +29,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseStreamStaticFiles();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

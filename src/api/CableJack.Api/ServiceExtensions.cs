@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using CableJack.Core.Enums;
 using CableJack.Core.Interfaces;
 using CableJack.Core.Services;
@@ -29,6 +30,21 @@ public static class ServiceExtensions
         services.AddScoped<IImportService, ImportService>();
         services.AddScoped<IEpgService, EpgService>();
         services.AddScoped<IProviderService, ProviderService>();
+
+        services.AddRateLimiter(options =>
+        {
+            options.AddPolicy("auth", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0,
+                }));
+
+            options.RejectionStatusCode = 429;
+        });
 
         return services;
     }

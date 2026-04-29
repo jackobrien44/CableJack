@@ -16,10 +16,12 @@ RUN dotnet publish CableJack.Api/CableJack.Api.csproj \
     --no-self-contained
 
 # ── Stage 3: Runtime ─────────────────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg \
     && rm -rf /var/lib/apt/lists/*
+
+FROM runtime
 WORKDIR /app
 COPY --from=api-build /app/publish ./
 COPY --from=frontend /ui/dist ./wwwroot/
