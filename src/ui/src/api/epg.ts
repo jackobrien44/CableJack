@@ -13,4 +13,6 @@ export const epgApi = {
     api.get<ProgrammeResponse>(`/epg/channels/${channelId}/now`),
 
   getAllNowPlaying: () => api.get<ProgrammeResponse[]>('/epg/now'),
+
+  deleteAll: () => api.delete<{ deleted: number }>('/epg'),
 }

@@ -67,11 +67,14 @@ namespace CableJack.Infrastructure.Services
             }
 
             var channels = await db.Channels.ToListAsync();
-            // Primary lookup by tvg-id, fallback to name
+            // Primary lookup by tvg-id, fallback to name — keep first match on duplicates
             var channelMapByTvgId = channels
                 .Where(c => !string.IsNullOrEmpty(c.TvgId))
-                .ToDictionary(c => c.TvgId!, StringComparer.OrdinalIgnoreCase);
-            var channelMapByName = channels.ToDictionary(c => c.Name, StringComparer.OrdinalIgnoreCase);
+                .GroupBy(c => c.TvgId!, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+            var channelMapByName = channels
+                .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
             var programmesToAdd = new List<Programme>();
 
@@ -131,6 +134,11 @@ namespace CableJack.Infrastructure.Services
 
             result.ChannelsUpdated = programmesToAdd.Select(p => p.ChannelId).Distinct().Count();
             return result;
+        }
+
+        public async Task<int> DeleteAllAsync()
+        {
+            return await db.Programmes.ExecuteDeleteAsync();
         }
 
         private static bool TryParseXmltvDateTime(string value, out DateTime result)

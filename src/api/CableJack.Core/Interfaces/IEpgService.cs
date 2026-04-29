@@ -8,5 +8,6 @@ namespace CableJack.Core.Interfaces
         Task<ProgrammeResponse?> GetNowPlayingAsync(int channelId);
         Task<List<ProgrammeResponse>> GetAllNowPlayingAsync();
         Task<ImportResult> ImportXmltvAsync(System.IO.Stream stream);
+        Task<int> DeleteAllAsync();
     }
 }

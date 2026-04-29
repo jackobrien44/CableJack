@@ -28,6 +28,14 @@ namespace CableJack.Api.Controllers
             return await epgService.GetAllNowPlayingAsync();
         }
 
+        [HttpDelete]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> DeleteAll()
+        {
+            var count = await epgService.DeleteAllAsync();
+            return Ok(new { deleted = count });
+        }
+
         [HttpPost("import")]
         [Authorize(Roles = "Administrator")]
         public async Task<ActionResult<ImportResult>> ImportXmltv(IFormFile file)

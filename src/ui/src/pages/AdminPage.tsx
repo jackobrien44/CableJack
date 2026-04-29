@@ -3,6 +3,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { adminApi, type UpdateUserRequest } from '../api/admin'
 import { channelsApi } from '../api/channels'
 import { categoriesApi } from '../api/categories'
+import { epgApi } from '../api/epg'
 import { providersApi, type CreateProviderRequest } from '../api/providers'
 import { useAuth } from '../hooks/useAuth'
 import type { ImportResult, ProviderResponse, UserResponse } from '../types/api'
@@ -69,6 +70,11 @@ function ImportsTab() {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       alert(`Deleted ${deleted} categor${deleted !== 1 ? 'ies' : 'y'}.`)
     },
+  })
+
+  const clearEpg = useMutation({
+    mutationFn: () => epgApi.deleteAll(),
+    onSuccess: ({ deleted }) => alert(`Deleted ${deleted} programme${deleted !== 1 ? 's' : ''}.`),
   })
 
   const importM3UFile = useMutation({
@@ -155,7 +161,7 @@ function ImportsTab() {
         onFile={f => importEPG.mutate(f)}
       />
       <div className="bg-gray-800 rounded-xl p-5">
-        <h2 className="text-white font-medium mb-3">Danger Zone</h2>
+        <h2 className="text-white font-medium mb-3">Cleanup</h2>
         <div className="flex gap-3">
           <button
             onClick={() => {
@@ -174,6 +180,15 @@ function ImportsTab() {
             className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
           >
             {clearCategories.isPending ? 'Deleting…' : 'Clear All Categories'}
+          </button>
+          <button
+            onClick={() => {
+              if (confirm('Delete all EPG data? This cannot be undone.')) clearEpg.mutate()
+            }}
+            disabled={clearEpg.isPending}
+            className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+          >
+            {clearEpg.isPending ? 'Deleting…' : 'Clear EPG'}
           </button>
         </div>
         {clearChannels.error && (
