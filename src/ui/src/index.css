@@ -13,6 +13,10 @@
   font-size: 18px;
 }
 
+button, [role="button"], select, a {
+  cursor: pointer;
+}
+
 body {
   background-color: #111827;
   color: #f9fafb;
@@ -41,6 +45,48 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #4b5563;
 }
+
+/* ── Vidstack theme overrides ───────────────────────────────── */
+
+[data-media-player] {
+  --video-brand: #7c3aed;
+  --video-focus-ring-color: #7c3aed;
+  --video-font-family: system-ui, 'Segoe UI', sans-serif;
+  --video-border-radius: 0px;
+  --video-border: none;
+  --media-menu-bg: #1f2937;
+  --media-menu-border: 1px solid #374151;
+  --media-menu-color-gray-300: #111827;
+  --media-menu-color-gray-400: #1f2937;
+  --media-menu-color-gray-50: rgb(255 255 255 / 0.06);
+  --media-tooltip-bg-color: #111827;
+  --media-tooltip-border: 1px solid #374151;
+  --media-slider-track-bg: #374151;
+  --media-slider-track-fill-bg: #7c3aed;
+  --media-slider-track-progress-bg: #4c1d95;
+  --media-slider-thumb-bg: #fff;
+  --media-slider-thumb-border: 1px solid #7c3aed;
+  --media-slider-focused-thumb-shadow: 0 0 0 3px rgb(124 58 237 / 0.4);
+  --media-live-button-edge-bg: #7c3aed;
+}
+
+/* Fill the parent container instead of locking to 16:9 */
+[data-media-player][data-view-type='video'] {
+  aspect-ratio: unset;
+  height: 100%;
+}
+
+[data-media-player][data-view-type='video'] [data-media-provider] video {
+  height: 100%;
+}
+
+/* Force slider track fill to brand color (overrides Vidstack default red) */
+[data-media-player] [data-part="track-fill"],
+[data-media-player] .vds-slider-track-fill {
+  background: #7c3aed !important;
+}
+
+/* ── End Vidstack overrides ─────────────────────────────────── */
 
 video::-webkit-media-controls-current-time-display,
 video::-webkit-media-controls-time-remaining-display,

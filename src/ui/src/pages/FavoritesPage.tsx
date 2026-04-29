@@ -4,27 +4,14 @@ import { userApi } from '../api/user'
 import { ChannelCard } from '../components/ChannelCard'
 import { useStartStream } from '../hooks/useStartStream'
 
-const MIN_CARD_W = 160
-const MIN_CARD_H = 155
+const MIN_CARD_W = 220
+const MIN_CARD_H = 210
 const GAP = 12
 
 export default function FavoritesPage() {
   const queryClient = useQueryClient()
   const gridContainerRef = useRef<HTMLDivElement>(null)
   const [gridDims, setGridDims] = useState({ cols: 6, rows: 4 })
-
-  useEffect(() => {
-    const el = gridContainerRef.current
-    if (!el) return
-    const ro = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect
-      const cols = Math.max(2, Math.floor((width + GAP) / (MIN_CARD_W + GAP)))
-      const rows = Math.max(1, Math.floor((height + GAP) / (MIN_CARD_H + GAP)))
-      setGridDims(prev => prev.cols === cols && prev.rows === rows ? prev : { cols, rows })
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
 
   const { data: favorites, isLoading } = useQuery({
     queryKey: ['favorites'],
@@ -37,6 +24,20 @@ export default function FavoritesPage() {
   })
 
   const startStream = useStartStream()
+  const hasFavorites = (favorites?.length ?? 0) > 0
+
+  useEffect(() => {
+    const el = gridContainerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      const cols = Math.max(2, Math.floor((width + GAP) / (MIN_CARD_W + GAP)))
+      const rows = Math.max(1, Math.floor((height + GAP) / (MIN_CARD_H + GAP)))
+      setGridDims(prev => prev.cols === cols && prev.rows === rows ? prev : { cols, rows })
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [hasFavorites])
 
   if (isLoading) return <div className="p-6 text-gray-400 text-sm">Loading…</div>
 

@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { MediaPlayer, MediaProvider } from '@vidstack/react'
+import type { MediaPlayerInstance } from '@vidstack/react'
 import { DefaultVideoLayout, defaultLayoutIcons } from '@vidstack/react/player/layouts/default'
 import '@vidstack/react/player/styles/default/theme.css'
 import '@vidstack/react/player/styles/default/layouts/video.css'
@@ -17,15 +18,16 @@ export default function PlayerPage() {
   const [streamId, setStreamId] = useState<number | null>(null)
   const [startError, setStartError] = useState<string | null>(null)
   const ffmpegPaused = useRef(false)
-  const [showSidebar, setShowSidebar] = useState(true)
+  const [showSidebar, setShowSidebar] = useState(false)
+  const playerRef = useRef<MediaPlayerInstance>(null)
 
-  // Start stream once on mount
-  if (!startedRef.current) {
+  useEffect(() => {
+    if (startedRef.current) return
     startedRef.current = true
     streamsApi.start(channelId)
       .then(s => setStreamId(s.id))
       .catch(() => setStartError('Failed to start stream.'))
-  }
+  }, [channelId])
 
   const { data: stream } = useQuery({
     queryKey: ['stream', streamId],
@@ -65,6 +67,7 @@ export default function PlayerPage() {
   const isRunning = stream?.status === 'Running' && !!stream?.url
   const isStarting = (startError == null && streamId == null) || stream?.status === 'Starting'
 
+
   return (
     <div className="flex bg-gray-950 h-svh overflow-hidden">
 
@@ -88,55 +91,55 @@ export default function PlayerPage() {
           </div>
         )}
 
-        {/* Vidstack player */}
-        {isRunning && (
-          <MediaPlayer
-            src={{ src: stream.url, type: 'application/x-mpegurl' }}
-            autoPlay
-            className="w-full h-full"
-            onPause={() => { ffmpegPaused.current = true; pause.mutate() }}
-            onPlay={() => {
-              if (!ffmpegPaused.current) return
-              ffmpegPaused.current = false
-              resume.mutate()
+        {/* Vidstack player — always mounted so controls are visible during loading */}
+        <MediaPlayer
+          ref={playerRef}
+          src={isRunning ? { src: stream.url, type: 'application/x-mpegurl' } : undefined}
+          minLiveDVRWindow={30}
+          className="w-full h-full dark"
+          onCanPlay={() => playerRef.current?.play()}
+          onPause={() => { ffmpegPaused.current = true; pause.mutate() }}
+          onPlay={() => {
+            if (!ffmpegPaused.current) return
+            ffmpegPaused.current = false
+            resume.mutate()
+          }}
+        >
+          <MediaProvider />
+          <DefaultVideoLayout
+            icons={defaultLayoutIcons}
+            slots={{
+              beforePlayButton: (
+                <button
+                  onClick={() => stop.mutate()}
+                  disabled={stop.isPending}
+                  className="vds-button"
+                  title="Stop and go back"
+                  aria-label="Stop"
+                >
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                  </svg>
+                </button>
+              ),
+              afterFullscreenButton: (
+                <button
+                  onClick={() => setShowSidebar(v => !v)}
+                  className="vds-button"
+                  title={showSidebar ? 'Hide info' : 'Show info'}
+                  aria-label="Toggle sidebar"
+                >
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    {showSidebar
+                      ? <path d="M3 18h13v-2H3v2zm0-5h10v-2H3v2zm0-7v2h13V6H3zm18 9.59L17.42 12 21 8.41 19.59 7l-5 5 5 5L21 15.59z"/>
+                      : <path d="M3 18h13v-2H3v2zm0-5h10v-2H3v2zm0-7v2h13V6H3zm18 9.59L17.42 12 21 8.41 19.59 7l-5 5 5 5L21 15.59z"/>
+                    }
+                  </svg>
+                </button>
+              ),
             }}
-          >
-            <MediaProvider />
-            <DefaultVideoLayout
-              icons={defaultLayoutIcons}
-              slots={{
-                beforePlayButton: (
-                  <button
-                    onClick={() => stop.mutate()}
-                    disabled={stop.isPending}
-                    className="vds-button"
-                    title="Stop and go back"
-                    aria-label="Stop"
-                  >
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                    </svg>
-                  </button>
-                ),
-                afterFullscreenButton: (
-                  <button
-                    onClick={() => setShowSidebar(v => !v)}
-                    className="vds-button"
-                    title={showSidebar ? 'Hide info' : 'Show info'}
-                    aria-label="Toggle sidebar"
-                  >
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                      {showSidebar
-                        ? <path d="M3 18h13v-2H3v2zm0-5h10v-2H3v2zm0-7v2h13V6H3zm18 9.59L17.42 12 21 8.41 19.59 7l-5 5 5 5L21 15.59z"/>
-                        : <path d="M3 18h13v-2H3v2zm0-5h10v-2H3v2zm0-7v2h13V6H3zm18 9.59L17.42 12 21 8.41 19.59 7l-5 5 5 5L21 15.59z"/>
-                      }
-                    </svg>
-                  </button>
-                ),
-              }}
-            />
-          </MediaPlayer>
-        )}
+          />
+        </MediaPlayer>
       </div>
 
       {/* Sidebar */}

@@ -106,6 +106,10 @@ public static class ServiceExtensions
 
     public static async Task RunStartupTasksAsync(this WebApplication app)
     {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CableJackDbContext>();
+        await db.Database.MigrateAsync();
+
         var streamsDir = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "streams");
         Directory.CreateDirectory(streamsDir);
         foreach (var dir in Directory.GetDirectories(streamsDir))
@@ -114,8 +118,6 @@ public static class ServiceExtensions
             catch (Exception ex) { app.Logger.LogWarning(ex, "Failed to delete orphaned stream directory {Dir}", dir); }
         }
 
-        using var scope = app.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<CableJackDbContext>();
         var reset = await db.Streams
             .Where(s => s.Status == StreamStatus.Starting || s.Status == StreamStatus.Running)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, StreamStatus.Error));

@@ -80,9 +80,20 @@ namespace CableJack.Infrastructure.Services
                 await Task.Delay(200);
 
             if (!File.Exists(playlistPath))
-                _logger.LogWarning("[stream:{StreamId}] timed out waiting for playlist — marking Running anyway", streamId);
+            {
+                var proc = _processes.GetValueOrDefault(streamId);
+                if (proc is null || proc.HasExited)
+                {
+                    _logger.LogWarning("[stream:{StreamId}] timed out waiting for playlist and ffmpeg has exited — marking Error", streamId);
+                    await UpdateStreamAsync(streamId, StreamStatus.Error);
+                    return url;
+                }
+                _logger.LogWarning("[stream:{StreamId}] timed out waiting for playlist but ffmpeg is still running — marking Running anyway", streamId);
+            }
             else
+            {
                 _logger.LogInformation("[stream:{StreamId}] playlist ready, marking Running. URL={Url}", streamId, url);
+            }
 
             await UpdateStreamAsync(streamId, StreamStatus.Running, url);
             return url;

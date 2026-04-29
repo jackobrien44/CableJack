@@ -21,11 +21,17 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
-app.UseHttpsRedirection();
-app.UseCors("Development");
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+    app.UseCors("Development");
+}
+
 app.UseStreamStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapFallbackToFile("index.html");
 
 app.Run();

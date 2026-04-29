@@ -10,8 +10,8 @@ import { ChannelCard } from '../components/ChannelCard'
 import { useStartStream } from '../hooks/useStartStream'
 import type { ChannelResponse } from '../types/api'
 
-const MIN_CARD_W = 160
-const MIN_CARD_H = 155
+const MIN_CARD_W = 220
+const MIN_CARD_H = 210
 const GAP = 12
 
 export default function ChannelsPage() {
@@ -28,29 +28,7 @@ export default function ChannelsPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const gridContainerRef = useRef<HTMLDivElement>(null)
   const [gridDims, setGridDims] = useState({ cols: 6, rows: 4 })
-
-  useEffect(() => {
-    const el = gridContainerRef.current
-    if (!el) return
-    const ro = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect
-      const cols = Math.max(2, Math.floor((width + GAP) / (MIN_CARD_W + GAP)))
-      const rows = Math.max(1, Math.floor((height + GAP) / (MIN_CARD_H + GAP)))
-      setGridDims(prev => prev.cols === cols && prev.rows === rows ? prev : { cols, rows })
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
   const pageSize = gridDims.cols * gridDims.rows
-
-  const prevPageSizeRef = useRef(pageSize)
-  useEffect(() => {
-    if (prevPageSizeRef.current !== pageSize) {
-      prevPageSizeRef.current = pageSize
-      setPage(1)
-    }
-  }, [pageSize])
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
@@ -65,7 +43,6 @@ export default function ChannelsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['channels', search, categoryId, providerId, page, pageSize],
     queryFn: () => channelsApi.getAll({ page, pageSize, search: search || undefined, categoryId, providerId }),
-    enabled: pageSize > 0,
   })
 
   const { data: favorites } = useQuery({
@@ -107,8 +84,13 @@ export default function ChannelsPage() {
     setInputValue(value)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      setParam('q', value || undefined)
-      setPage(1)
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev)
+        if (value) next.set('q', value)
+        else next.delete('q')
+        next.delete('page')
+        return next
+      }, { replace: true })
     }, 300)
   }
 
@@ -117,8 +99,13 @@ export default function ChannelsPage() {
   }
 
   function setProviderId(id: number | undefined) {
-    setParam('provider', id?.toString())
-    setPage(1)
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      if (id !== undefined) next.set('provider', String(id))
+      else next.delete('provider')
+      next.delete('page')
+      return next
+    }, { replace: true })
   }
 
   function toggleFavorite(channel: ChannelResponse) {
@@ -127,7 +114,20 @@ export default function ChannelsPage() {
   }
 
   const channels = data?.items ?? []
-  const totalPages = data && pageSize > 0 ? Math.ceil(data.totalCount / pageSize) : 1
+  const totalPages = data ? Math.ceil(data.totalCount / pageSize) : 1
+
+  useEffect(() => {
+    const el = gridContainerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      const cols = Math.max(2, Math.floor((width + GAP) / (MIN_CARD_W + GAP)))
+      const rows = Math.max(1, Math.floor((height + GAP) / (MIN_CARD_H + GAP)))
+      setGridDims(prev => prev.cols === cols && prev.rows === rows ? prev : { cols, rows })
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [channels.length > 0])
   const categories = categoriesData?.items ?? []
   const providers = providersData ?? []
 
@@ -198,7 +198,11 @@ export default function ChannelsPage() {
         </div>
       )}
 
-      {isLoading && <div className="text-gray-400 text-sm flex-1">Loading channels…</div>}
+      {isLoading && <div className="text-gray-400 text-sm">Loading channels…</div>}
+
+      {!isLoading && channels.length === 0 && (
+        <div className="text-gray-500 text-sm">No channels found.</div>
+      )}
 
       {channels.length > 0 && (
         <div ref={gridContainerRef} className="flex-1 min-h-0 overflow-hidden">
@@ -221,10 +225,6 @@ export default function ChannelsPage() {
             ))}
           </div>
         </div>
-      )}
-
-      {!isLoading && channels.length === 0 && (
-        <div className="text-gray-500 text-sm flex-1">No channels found.</div>
       )}
 
       {channels.length > 0 && totalPages > 1 && (
