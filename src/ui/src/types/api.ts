@@ -61,12 +61,40 @@ export interface StreamResponse {
   channelName: string
   userId: number
   username: string | null
+  startedAt: string
 }
 
 export interface DashboardStatsDto {
   activeStreams: number
   totalUsers: number
   totalChannels: number
+  streamsLast24h: number
+  errorsLast24h: number
+  newUsersLast7d: number
+}
+
+export interface WatchSessionDto {
+  username: string
+  channelName: string
+  startedAt: string
+  stoppedAt: string | null
+}
+
+export interface TopChannelDto {
+  channelName: string
+  sessionCount: number
+  totalMinutes: number
+}
+
+export interface UserStatDto {
+  userId: number
+  username: string
+  isActive: boolean
+  activeStreams: number
+  totalSessions: number
+  totalMinutes: number
+  lastLoginAt: string | null
+  createdAt: string
 }
 
 export interface ProgrammeResponse {

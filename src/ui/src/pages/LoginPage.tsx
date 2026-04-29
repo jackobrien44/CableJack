@@ -1,11 +1,17 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
-import { ApiError } from '../api/client'
+import { ApiError, api } from '../api/client'
 
 export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const { data: regMode } = useQuery({
+    queryKey: ['registration-mode'],
+    queryFn: () => api.get<{ registrationMode: string }>('/auth/registration-mode'),
+  })
+  const signupDisabled = regMode?.registrationMode === 'Disabled'
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -60,16 +66,22 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-medium rounded-lg py-2 transition-colors"
+            className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg py-2 transition-colors"
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
 
-        <p className="text-center text-gray-500 text-sm mt-6">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-violet-400 hover:text-violet-300">Sign up</Link>
-        </p>
+        {!signupDisabled && (
+          <div className="mt-6">
+            <Link
+              to="/register"
+              className="block w-full text-center bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-gray-500 text-gray-300 hover:text-white font-medium rounded-lg py-2 text-sm transition-colors"
+            >
+              Sign up
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   )

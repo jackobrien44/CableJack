@@ -14,6 +14,5 @@ namespace CableJack.Core.Interfaces
         Task<PagedResult<StreamResponse>> GetAllStreamsAsync(PaginationParams pagination);
         Task StopAllUserStreamsAsync(int userId);
         Task<StreamResponse?> AdminStopStreamAsync(int id);
-        Task<DashboardStatsDto> GetDashboardStatsAsync();
     }
 }

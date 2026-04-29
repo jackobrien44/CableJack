@@ -7,8 +7,15 @@ namespace CableJack.Api.Controllers
 {
     [ApiController]
     [Route("api/auth")]
-    public class AuthController(IAuthService authService) : ControllerBase
+    public class AuthController(IAuthService authService, ISettingsService settingsService) : ControllerBase
     {
+        [HttpGet("registration-mode")]
+        public async Task<IActionResult> GetRegistrationMode()
+        {
+            var settings = await settingsService.GetSettingsAsync();
+            return Ok(new { registrationMode = settings.RegistrationMode });
+        }
+
         [HttpPost("register")]
         [EnableRateLimiting("auth")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)

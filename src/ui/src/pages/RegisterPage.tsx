@@ -86,10 +86,14 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        <p className="text-center text-gray-500 text-sm mt-6">
-          Already have an account?{' '}
-          <Link to="/login" className="text-violet-400 hover:text-violet-300">Sign in</Link>
-        </p>
+        <div className="mt-6">
+          <Link
+            to="/login"
+            className="block w-full text-center bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-gray-500 text-gray-300 hover:text-white font-medium rounded-lg py-2 text-sm transition-colors"
+          >
+            Already have an account? Sign in
+          </Link>
+        </div>
       </div>
     </div>
   )

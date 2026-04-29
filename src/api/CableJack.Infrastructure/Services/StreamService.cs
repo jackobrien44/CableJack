@@ -43,6 +43,7 @@ namespace CableJack.Infrastructure.Services
                 UserId = userId,
                 Status = StreamStatus.Starting,
                 Url = string.Empty,
+                StartedAt = DateTime.UtcNow,
             };
 
             db.Streams.Add(stream);
@@ -178,21 +179,6 @@ namespace CableJack.Infrastructure.Services
             return ToResponse(stream);
         }
 
-        public async Task<DashboardStatsDto> GetDashboardStatsAsync()
-        {
-            var activeStreams = await db.Streams
-                .CountAsync(s => s.Status == StreamStatus.Running || s.Status == StreamStatus.Starting);
-            var totalUsers = await db.Users.CountAsync();
-            var totalChannels = await db.Channels.CountAsync(c => c.IsActive);
-
-            return new DashboardStatsDto
-            {
-                ActiveStreams = activeStreams,
-                TotalUsers = totalUsers,
-                TotalChannels = totalChannels,
-            };
-        }
-
         private static StreamResponse ToResponse(Stream s) => new()
         {
             Id = s.Id,
@@ -203,6 +189,7 @@ namespace CableJack.Infrastructure.Services
             ChannelLogoUrl = s.Channel.LogoUrl,
             UserId = s.UserId,
             Username = s.User?.Username,
+            StartedAt = DateTime.SpecifyKind(s.StartedAt, DateTimeKind.Utc),
         };
     }
 }

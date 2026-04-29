@@ -10,7 +10,7 @@ namespace CableJack.Api.Controllers
     [ApiController]
     [Route("api/admin")]
     [Authorize(Roles = "Administrator")]
-    public class AdminController(IUserService userService, IStreamService streamService, IChannelService channelService, IImportService importService, ISettingsService settingsService) : ControllerBase
+    public class AdminController(IUserService userService, IStreamService streamService, IChannelService channelService, IImportService importService, ISettingsService settingsService, IDashboardService dashboardService) : ControllerBase
     {
         [HttpGet("settings")]
         public async Task<ActionResult<SystemSettingsDto>> GetSettings()
@@ -75,10 +75,20 @@ namespace CableJack.Api.Controllers
         }
 
         [HttpGet("dashboard")]
-        public async Task<ActionResult<DashboardStatsDto>> GetDashboardStats()
-        {
-            return Ok(await streamService.GetDashboardStatsAsync());
-        }
+        public async Task<ActionResult<DashboardStatsDto>> GetDashboardStats() =>
+            Ok(await dashboardService.GetStatsAsync());
+
+        [HttpGet("dashboard/recent-history")]
+        public async Task<ActionResult<List<WatchSessionDto>>> GetRecentHistory() =>
+            Ok(await dashboardService.GetRecentHistoryAsync());
+
+        [HttpGet("dashboard/top-channels")]
+        public async Task<ActionResult<List<TopChannelDto>>> GetTopChannels() =>
+            Ok(await dashboardService.GetTopChannelsAsync());
+
+        [HttpGet("dashboard/user-stats")]
+        public async Task<ActionResult<List<UserStatDto>>> GetUserStats() =>
+            Ok(await dashboardService.GetUserStatsAsync());
 
         [HttpGet("streams")]
         public async Task<PagedResult<StreamResponse>> GetAllStreams([FromQuery] PaginationParams pagination)

@@ -96,11 +96,11 @@ export default function Layout() {
           )}
         </nav>
 
-        <div className="px-4 py-4 border-t border-gray-800">
-          <p className="text-gray-500 text-xs mb-2 truncate">{user?.username}</p>
+        <div className="px-4 py-4 border-t border-gray-800 flex items-center justify-between gap-2">
+          <p className="text-gray-300 text-sm font-medium truncate">{user?.username}</p>
           <button
             onClick={logout}
-            className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+            className="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 hover:bg-gray-800 px-3 py-1.5 rounded-lg transition-colors shrink-0"
           >
             Sign out
           </button>

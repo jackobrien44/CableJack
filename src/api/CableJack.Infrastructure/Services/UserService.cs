@@ -35,6 +35,7 @@ namespace CableJack.Infrastructure.Services
                 Role = user.Role,
                 CreatedAt = user.CreatedAt,
                 ModifiedAt = user.ModifiedAt,
+                LastLoginAt = user.LastLoginAt,
             };
         }
 
@@ -50,6 +51,7 @@ namespace CableJack.Infrastructure.Services
                     Role = u.Role,
                     CreatedAt = u.CreatedAt,
                     ModifiedAt = u.ModifiedAt,
+                    LastLoginAt = u.LastLoginAt,
                 })
                 .ToPagedResultAsync(pagination);
         }
@@ -66,6 +68,7 @@ namespace CableJack.Infrastructure.Services
                     Role = u.Role,
                     CreatedAt = u.CreatedAt,
                     ModifiedAt = u.ModifiedAt,
+                    LastLoginAt = u.LastLoginAt,
                 })
                 .FirstOrDefaultAsync();
         }
@@ -89,6 +92,7 @@ namespace CableJack.Infrastructure.Services
                 Role = user.Role,
                 CreatedAt = user.CreatedAt,
                 ModifiedAt = user.ModifiedAt,
+                LastLoginAt = user.LastLoginAt,
             };
         }
 

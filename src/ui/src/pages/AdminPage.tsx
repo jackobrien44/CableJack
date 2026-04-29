@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { UserStatDto } from '../types/api'
 import { adminApi, type UpdateUserRequest, type CreateUserRequest } from '../api/admin'
 import { channelsApi } from '../api/channels'
 import { categoriesApi } from '../api/categories'
@@ -14,28 +15,31 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('dashboard')
 
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-semibold text-white mb-6">Admin</h1>
-
-      <div className="flex flex-wrap gap-1 mb-6 bg-gray-800 rounded-lg p-1 w-fit">
-        {(['dashboard', 'imports', 'providers', 'users', 'settings'] as Tab[]).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors capitalize ${
-              tab === t ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            {t}
-          </button>
-        ))}
+    <div className="flex flex-col h-full overflow-hidden px-6">
+      <div className="shrink-0 pt-6 pb-4">
+        <h1 className="text-xl font-semibold text-white mb-4">Admin</h1>
+        <div className="flex flex-wrap gap-1 bg-gray-800 rounded-lg p-1 w-fit">
+          {(['dashboard', 'imports', 'providers', 'users', 'settings'] as Tab[]).map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors capitalize ${
+                tab === t ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {tab === 'dashboard' && <DashboardTab />}
-      {tab === 'imports' && <ImportsTab />}
-      {tab === 'providers' && <ProvidersTab />}
-      {tab === 'users' && <UsersTab />}
-      {tab === 'settings' && <SettingsTab />}
+      <div className="flex-1 min-h-0 overflow-y-auto pb-6">
+        {tab === 'dashboard' && <DashboardTab />}
+        {tab === 'imports' && <ImportsTab />}
+        {tab === 'providers' && <ProvidersTab />}
+        {tab === 'users' && <UsersTab />}
+        {tab === 'settings' && <SettingsTab />}
+      </div>
     </div>
   )
 }
@@ -105,18 +109,13 @@ function SettingsTab() {
 
 function DashboardTab() {
   const queryClient = useQueryClient()
+  const INTERVAL = 10_000
 
-  const { data: stats } = useQuery({
-    queryKey: ['admin-dashboard-stats'],
-    queryFn: adminApi.getDashboardStats,
-    refetchInterval: 10_000,
-  })
-
-  const { data: streamsData, isLoading: streamsLoading } = useQuery({
-    queryKey: ['admin-streams'],
-    queryFn: () => adminApi.getActiveStreams(),
-    refetchInterval: 10_000,
-  })
+  const { data: stats } = useQuery({ queryKey: ['admin-dashboard-stats'], queryFn: adminApi.getDashboardStats, refetchInterval: INTERVAL })
+  const { data: streamsData } = useQuery({ queryKey: ['admin-streams'], queryFn: () => adminApi.getActiveStreams(), refetchInterval: INTERVAL })
+  const { data: recentHistory } = useQuery({ queryKey: ['admin-recent-history'], queryFn: adminApi.getDashboardRecentHistory, refetchInterval: INTERVAL })
+  const { data: topChannels } = useQuery({ queryKey: ['admin-top-channels'], queryFn: adminApi.getDashboardTopChannels, refetchInterval: INTERVAL })
+  const { data: userStats } = useQuery({ queryKey: ['admin-user-stats'], queryFn: adminApi.getDashboardUserStats, refetchInterval: INTERVAL })
 
   const stopStream = useMutation({
     mutationFn: (id: number) => adminApi.adminStopStream(id),
@@ -126,9 +125,7 @@ function DashboardTab() {
     },
   })
 
-  const activeStreams = (streamsData?.items ?? []).filter(
-    s => s.status === 'Running' || s.status === 'Starting'
-  )
+  const activeStreams = (streamsData?.items ?? []).filter(s => s.status === 'Running' || s.status === 'Starting')
 
   const statusColor = (s: string) => {
     if (s === 'Running') return 'text-green-400'
@@ -137,73 +134,195 @@ function DashboardTab() {
     return 'text-gray-400'
   }
 
+  const fmtDuration = (startedAt: string, stoppedAt: string | null) => {
+    const ms = (stoppedAt ? new Date(stoppedAt) : new Date()).getTime() - new Date(startedAt).getTime()
+    const mins = Math.floor(ms / 60000)
+    if (mins < 60) return `${mins}m`
+    return `${Math.floor(mins / 60)}h ${mins % 60}m`
+  }
+
+  const fmtMinutes = (mins: number) => {
+    if (mins < 60) return `${mins}m`
+    return `${Math.floor(mins / 60)}h ${mins % 60}m`
+  }
+
+  const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString() : '—'
+  const fmtRelative = (iso: string | null) => {
+    if (!iso) return '—'
+    const diff = Date.now() - new Date(iso).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return 'just now'
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.floor(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    return `${Math.floor(hrs / 24)}d ago`
+  }
+
+  const statCards = [
+    { label: 'Active Streams', value: stats?.activeStreams ?? '—', color: 'text-white' },
+    { label: 'Total Users', value: stats?.totalUsers ?? '—', color: 'text-white' },
+    { label: 'Active Channels', value: stats?.totalChannels ?? '—', color: 'text-white' },
+    { label: 'Sessions (24h)', value: stats?.streamsLast24h ?? '—', color: 'text-white' },
+    { label: 'Errors (24h)', value: stats?.errorsLast24h ?? '—', color: (stats?.errorsLast24h ?? 0) > 0 ? 'text-red-400' : 'text-white' },
+    { label: 'New Users (7d)', value: stats?.newUsersLast7d ?? '—', color: 'text-white' },
+  ]
+
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
+
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: 'Active Streams', value: stats?.activeStreams ?? '—' },
-          { label: 'Total Users', value: stats?.totalUsers ?? '—' },
-          { label: 'Active Channels', value: stats?.totalChannels ?? '—' },
-        ].map(({ label, value }) => (
-          <div key={label} className="bg-gray-800 rounded-xl p-5">
-            <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">{label}</p>
-            <p className="text-white text-3xl font-semibold">{value}</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {statCards.map(({ label, value, color }) => (
+          <div key={label} className="bg-gray-800 rounded-xl p-4">
+            <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1 leading-tight">{label}</p>
+            <p className={`text-2xl font-semibold ${color}`}>{value}</p>
           </div>
         ))}
       </div>
 
-      {/* Active streams */}
-      <div className="bg-gray-800 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-700 flex items-center justify-between">
-          <h2 className="text-white font-medium">Active Streams</h2>
-          <span className="text-gray-500 text-xs">Auto-refreshes every 10s</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Active streams — full width */}
+        <div className="lg:col-span-2">
+          <Section title="Active Streams" badge={activeStreams.length} hint="auto-refreshes every 10s">
+            {activeStreams.length === 0
+              ? <Empty>No active streams.</Empty>
+              : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b border-gray-700">
+                      <Th>User</Th><Th>Channel</Th><Th>Status</Th><Th>Duration</Th><Th />
+                    </tr></thead>
+                    <tbody className="divide-y divide-gray-700">
+                      {activeStreams.map(s => (
+                        <tr key={s.id} className="hover:bg-gray-750">
+                          <Td><span className="text-white font-medium">{s.username ?? `User ${s.userId}`}</span></Td>
+                          <Td>{s.channelName}</Td>
+                          <Td><span className={`font-medium ${statusColor(s.status)}`}>{s.status}</span></Td>
+                          <Td>{fmtDuration(s.startedAt, null)}</Td>
+                          <Td right>
+                            <button
+                              onClick={() => { if (confirm(`Kill ${s.username ?? 'this user'}'s stream of ${s.channelName}?`)) stopStream.mutate(s.id) }}
+                              disabled={stopStream.isPending && stopStream.variables === s.id}
+                              className="text-red-400 hover:text-red-300 disabled:opacity-50 text-xs transition-colors"
+                            >Kill</button>
+                          </Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+          </Section>
         </div>
 
-        {streamsLoading && (
-          <p className="text-gray-400 text-sm px-5 py-4">Loading…</p>
-        )}
+        {/* Top channels */}
+        <Section title="Top Channels" hint="all time">
+          {!topChannels?.length
+            ? <Empty>No watch history yet.</Empty>
+            : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-gray-700">
+                    <Th>Channel</Th><Th right>Sessions</Th><Th right>Watch time</Th>
+                  </tr></thead>
+                  <tbody className="divide-y divide-gray-700">
+                    {topChannels.map((c, i) => (
+                      <tr key={i} className="hover:bg-gray-750">
+                        <Td><span className="text-white">{c.channelName}</span></Td>
+                        <Td right>{c.sessionCount}</Td>
+                        <Td right>{fmtMinutes(c.totalMinutes)}</Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+        </Section>
 
-        {!streamsLoading && activeStreams.length === 0 && (
-          <p className="text-gray-500 text-sm px-5 py-4">No active streams.</p>
-        )}
-
-        {activeStreams.length > 0 && (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="text-left px-5 py-3 text-gray-400 font-medium">User</th>
-                <th className="text-left px-5 py-3 text-gray-400 font-medium">Channel</th>
-                <th className="text-left px-5 py-3 text-gray-400 font-medium">Status</th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700">
-              {activeStreams.map(s => (
-                <tr key={s.id} className="hover:bg-gray-750">
-                  <td className="px-5 py-3 text-white font-medium">{s.username ?? `User ${s.userId}`}</td>
-                  <td className="px-5 py-3 text-gray-300">{s.channelName}</td>
-                  <td className={`px-5 py-3 font-medium ${statusColor(s.status)}`}>{s.status}</td>
-                  <td className="px-5 py-3 text-right">
-                    <button
-                      onClick={() => {
-                        if (confirm(`Kill ${s.username ?? 'this user'}'s stream of ${s.channelName}?`))
-                          stopStream.mutate(s.id)
-                      }}
-                      disabled={stopStream.isPending && stopStream.variables === s.id}
-                      className="text-red-400 hover:text-red-300 disabled:opacity-50 text-xs transition-colors"
-                    >
-                      Kill
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        {/* Recent watch history */}
+        <Section title="Recent Sessions" hint="last 30">
+          {!recentHistory?.length
+            ? <Empty>No watch history yet.</Empty>
+            : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-gray-700">
+                    <Th>User</Th><Th>Channel</Th><Th right>Duration</Th>
+                  </tr></thead>
+                  <tbody className="divide-y divide-gray-700">
+                    {recentHistory.map((h, i) => (
+                      <tr key={i} className="hover:bg-gray-750">
+                        <Td><span className="text-white">{h.username}</span></Td>
+                        <Td>{h.channelName}</Td>
+                        <Td right>{fmtDuration(h.startedAt, h.stoppedAt)}</Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+        </Section>
       </div>
+
+      {/* User stats */}
+      <Section title="Users">
+        {!userStats?.length
+          ? <Empty>No users.</Empty>
+          : (
+            <div className="overflow-x-auto"><table className="w-full text-sm">
+              <thead><tr className="border-b border-gray-700">
+                <Th>Username</Th><Th right>Active</Th><Th right>Sessions</Th><Th right>Watch time</Th><Th right>Last login</Th><Th right>Joined</Th>
+              </tr></thead>
+              <tbody className="divide-y divide-gray-700">
+                {userStats.map((u: UserStatDto) => (
+                  <tr key={u.userId} className="hover:bg-gray-750">
+                    <Td>
+                      <span className={u.isActive ? 'text-white font-medium' : 'text-gray-500 font-medium'}>{u.username}</span>
+                      {!u.isActive && <span className="ml-2 text-xs text-red-400">disabled</span>}
+                    </Td>
+                    <Td right>{u.activeStreams > 0 ? <span className="text-green-400 font-medium">{u.activeStreams}</span> : <span className="text-gray-600">—</span>}</Td>
+                    <Td right>{u.totalSessions}</Td>
+                    <Td right>{fmtMinutes(u.totalMinutes)}</Td>
+                    <Td right>{fmtRelative(u.lastLoginAt)}</Td>
+                    <Td right>{fmtDate(u.createdAt)}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
+          )}
+      </Section>
     </div>
   )
+}
+
+function Section({ title, badge, hint, children }: { title: string; badge?: number; hint?: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-gray-800 rounded-xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-700 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <h2 className="text-white font-medium">{title}</h2>
+          {badge !== undefined && badge > 0 && (
+            <span className="bg-violet-600 text-white text-xs font-medium px-1.5 py-0.5 rounded-full">{badge}</span>
+          )}
+        </div>
+        {hint && <span className="text-gray-500 text-xs">{hint}</span>}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function Th({ children, right }: { children?: React.ReactNode; right?: boolean }) {
+  return <th className={`px-5 py-3 text-gray-400 font-medium text-xs ${right ? 'text-right' : 'text-left'}`}>{children}</th>
+}
+
+function Td({ children, right }: { children?: React.ReactNode; right?: boolean }) {
+  return <td className={`px-5 py-3 text-gray-300 ${right ? 'text-right' : ''}`}>{children}</td>
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return <p className="text-gray-500 text-sm px-5 py-4">{children}</p>
 }
 
 // ── Imports tab ──────────────────────────────────────────────────────────────
@@ -564,7 +683,7 @@ function ProvidersTab() {
                 )}
                 <button
                   onClick={() => setEditing(p)}
-                  className="text-gray-400 hover:text-white text-xs transition-colors"
+                  className="text-xs border border-gray-700 text-gray-400 hover:bg-gray-700 hover:border-gray-500 hover:text-white px-2 py-0.5 rounded transition-colors"
                 >
                   Edit
                 </button>
@@ -573,7 +692,7 @@ function ProvidersTab() {
                     if (confirm(`Delete provider "${p.name}"? Channels will keep their data but lose the provider link.`))
                       deleteProvider.mutate(p.id)
                   }}
-                  className="text-gray-600 hover:text-red-400 text-xs transition-colors"
+                  className="text-xs border border-red-900 text-red-500 hover:bg-red-600 hover:border-red-600 hover:text-white px-2 py-0.5 rounded transition-colors"
                 >
                   Delete
                 </button>
@@ -942,15 +1061,15 @@ function UserRow({
             {!isSelf && (
               <button
                 onClick={resettingPassword ? onCancelResetPassword : onResetPassword}
-                className={`text-xs transition-colors ${resettingPassword ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                className={`text-xs border px-2 py-0.5 rounded transition-colors ${resettingPassword ? 'border-gray-600 text-gray-400 hover:text-white hover:border-gray-400' : 'border-gray-700 text-gray-400 hover:bg-gray-700 hover:border-gray-500 hover:text-white'}`}
               >
-                {resettingPassword ? 'Cancel' : 'Reset pw'}
+                {resettingPassword ? 'Cancel' : 'Reset Password'}
               </button>
             )}
             <button
               onClick={onDelete}
               disabled={isSelf}
-              className="text-gray-600 hover:text-red-400 disabled:opacity-0 transition-colors text-xs"
+              className="text-xs border border-red-900 text-red-500 hover:bg-red-600 hover:border-red-600 hover:text-white px-2 py-0.5 rounded transition-colors disabled:opacity-0"
             >
               Delete
             </button>

@@ -38,12 +38,28 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #374151;
+  background: transparent;
   border-radius: 3px;
+  transition: background 0.3s;
 }
 
-::-webkit-scrollbar-thumb:hover {
+.is-scrolling::-webkit-scrollbar-thumb {
+  background: #374151;
+}
+
+.is-scrolling::-webkit-scrollbar-thumb:hover {
   background: #4b5563;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s;
+}
+
+*.is-scrolling {
+  scrollbar-color: #374151 transparent;
 }
 
 /* ── Vidstack theme overrides ───────────────────────────────── */

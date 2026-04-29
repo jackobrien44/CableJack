@@ -31,6 +31,7 @@ public static class ServiceExtensions
         services.AddScoped<IEpgService, EpgService>();
         services.AddScoped<IProviderService, ProviderService>();
         services.AddScoped<ISettingsService, SettingsService>();
+        services.AddScoped<IDashboardService, DashboardService>();
 
         services.AddRateLimiter(options =>
         {

@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { PagedResult, UserResponse, SystemSettingsDto, StreamResponse, DashboardStatsDto } from '../types/api'
+import type { PagedResult, UserResponse, SystemSettingsDto, StreamResponse, DashboardStatsDto, WatchSessionDto, TopChannelDto, UserStatDto } from '../types/api'
 
 export interface UpdateUserRequest {
   isActive?: boolean
@@ -16,6 +16,15 @@ export interface CreateUserRequest {
 export const adminApi = {
   getDashboardStats: () =>
     api.get<DashboardStatsDto>('/admin/dashboard'),
+
+  getDashboardRecentHistory: () =>
+    api.get<WatchSessionDto[]>('/admin/dashboard/recent-history'),
+
+  getDashboardTopChannels: () =>
+    api.get<TopChannelDto[]>('/admin/dashboard/top-channels'),
+
+  getDashboardUserStats: () =>
+    api.get<UserStatDto[]>('/admin/dashboard/user-stats'),
 
   getActiveStreams: (page = 1, pageSize = 50) =>
     api.get<PagedResult<StreamResponse>>(`/admin/streams?page=${page}&pageSize=${pageSize}`),

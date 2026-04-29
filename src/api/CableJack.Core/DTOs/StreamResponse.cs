@@ -12,5 +12,6 @@ namespace CableJack.Core.DTOs
         public string? ChannelLogoUrl { get; set; }
         public required int UserId { get; set; }
         public string? Username { get; set; }
+        public DateTime StartedAt { get; set; }
     }
 }

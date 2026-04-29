@@ -56,6 +56,9 @@ namespace CableJack.Infrastructure.Services
             if (!VerifyPassword(request.Password, user.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid credentials.");
 
+            user.LastLoginAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+
             return await CreateTokensAsync(user, ipAddress, deviceInfo);
         }
 
@@ -124,6 +127,7 @@ namespace CableJack.Infrastructure.Services
                     Role = user.Role,
                     CreatedAt = user.CreatedAt,
                     ModifiedAt = user.ModifiedAt,
+                    LastLoginAt = user.LastLoginAt,
                 },
             };
         }
