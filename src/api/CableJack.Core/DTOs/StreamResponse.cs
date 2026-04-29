@@ -11,5 +11,6 @@ namespace CableJack.Core.DTOs
         public required string ChannelName { get; set; }
         public string? ChannelLogoUrl { get; set; }
         public required int UserId { get; set; }
+        public string? Username { get; set; }
     }
 }

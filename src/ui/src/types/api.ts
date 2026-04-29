@@ -60,6 +60,13 @@ export interface StreamResponse {
   channelId: number
   channelName: string
   userId: number
+  username: string | null
+}
+
+export interface DashboardStatsDto {
+  activeStreams: number
+  totalUsers: number
+  totalChannels: number
 }
 
 export interface ProgrammeResponse {

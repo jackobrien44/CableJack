@@ -15,6 +15,7 @@ namespace CableJack.Infrastructure.Services
         {
             return await db.Streams
                 .Include(s => s.Channel)
+                .Include(s => s.User)
                 .Where(s => s.UserId == userId)
                 .Select(s => ToResponse(s))
                 .ToListAsync();
@@ -24,6 +25,7 @@ namespace CableJack.Infrastructure.Services
         {
             return await db.Streams
                 .Include(s => s.Channel)
+                .Include(s => s.User)
                 .Where(s => s.Id == id && s.UserId == userId)
                 .Select(s => ToResponse(s))
                 .FirstOrDefaultAsync();
@@ -68,6 +70,7 @@ namespace CableJack.Infrastructure.Services
         {
             var stream = await db.Streams
                 .Include(s => s.Channel)
+                .Include(s => s.User)
                 .FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId);
 
             if (stream is null) return null;
@@ -94,6 +97,7 @@ namespace CableJack.Infrastructure.Services
         {
             var stream = await db.Streams
                 .Include(s => s.Channel)
+                .Include(s => s.User)
                 .FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId);
 
             if (stream is null) return null;
@@ -108,6 +112,7 @@ namespace CableJack.Infrastructure.Services
         {
             var stream = await db.Streams
                 .Include(s => s.Channel)
+                .Include(s => s.User)
                 .FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId);
 
             if (stream is null) return null;
@@ -142,9 +147,50 @@ namespace CableJack.Infrastructure.Services
         {
             return await db.Streams
                 .Include(s => s.Channel)
+                .Include(s => s.User)
                 .OrderByDescending(s => s.Id)
                 .Select(s => ToResponse(s))
                 .ToPagedResultAsync(pagination);
+        }
+
+        public async Task<StreamResponse?> AdminStopStreamAsync(int id)
+        {
+            var stream = await db.Streams
+                .Include(s => s.Channel)
+                .Include(s => s.User)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (stream is null) return null;
+
+            await ffmpegService.StopAsync(stream.Id);
+
+            var openEntry = await db.WatchHistory
+                .Where(w => w.UserId == stream.UserId && w.ChannelId == stream.ChannelId && w.StoppedAt == null)
+                .OrderByDescending(w => w.StartedAt)
+                .FirstOrDefaultAsync();
+            if (openEntry is not null)
+            {
+                openEntry.StoppedAt = DateTime.UtcNow;
+                await db.SaveChangesAsync();
+            }
+
+            await db.Entry(stream).ReloadAsync();
+            return ToResponse(stream);
+        }
+
+        public async Task<DashboardStatsDto> GetDashboardStatsAsync()
+        {
+            var activeStreams = await db.Streams
+                .CountAsync(s => s.Status == StreamStatus.Running || s.Status == StreamStatus.Starting);
+            var totalUsers = await db.Users.CountAsync();
+            var totalChannels = await db.Channels.CountAsync(c => c.IsActive);
+
+            return new DashboardStatsDto
+            {
+                ActiveStreams = activeStreams,
+                TotalUsers = totalUsers,
+                TotalChannels = totalChannels,
+            };
         }
 
         private static StreamResponse ToResponse(Stream s) => new()
@@ -156,6 +202,7 @@ namespace CableJack.Infrastructure.Services
             ChannelName = s.Channel.Name,
             ChannelLogoUrl = s.Channel.LogoUrl,
             UserId = s.UserId,
+            Username = s.User?.Username,
         };
     }
 }

@@ -8,17 +8,17 @@ import { providersApi, type CreateProviderRequest } from '../api/providers'
 import { useAuth } from '../hooks/useAuth'
 import type { ImportResult, ProviderResponse, SystemSettingsDto, UserResponse } from '../types/api'
 
-type Tab = 'imports' | 'providers' | 'users' | 'settings'
+type Tab = 'dashboard' | 'imports' | 'providers' | 'users' | 'settings'
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<Tab>('imports')
+  const [tab, setTab] = useState<Tab>('dashboard')
 
   return (
     <div className="p-6">
       <h1 className="text-xl font-semibold text-white mb-6">Admin</h1>
 
-      <div className="flex gap-1 mb-6 bg-gray-800 rounded-lg p-1 w-fit">
-        {(['imports', 'providers', 'users', 'settings'] as Tab[]).map(t => (
+      <div className="flex flex-wrap gap-1 mb-6 bg-gray-800 rounded-lg p-1 w-fit">
+        {(['dashboard', 'imports', 'providers', 'users', 'settings'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -31,6 +31,7 @@ export default function AdminPage() {
         ))}
       </div>
 
+      {tab === 'dashboard' && <DashboardTab />}
       {tab === 'imports' && <ImportsTab />}
       {tab === 'providers' && <ProvidersTab />}
       {tab === 'users' && <UsersTab />}
@@ -95,6 +96,111 @@ function SettingsTab() {
           </button>
           {saved && <span className="text-green-400 text-sm">Saved</span>}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Dashboard tab ─────────────────────────────────────────────────────────────
+
+function DashboardTab() {
+  const queryClient = useQueryClient()
+
+  const { data: stats } = useQuery({
+    queryKey: ['admin-dashboard-stats'],
+    queryFn: adminApi.getDashboardStats,
+    refetchInterval: 10_000,
+  })
+
+  const { data: streamsData, isLoading: streamsLoading } = useQuery({
+    queryKey: ['admin-streams'],
+    queryFn: () => adminApi.getActiveStreams(),
+    refetchInterval: 10_000,
+  })
+
+  const stopStream = useMutation({
+    mutationFn: (id: number) => adminApi.adminStopStream(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-streams'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-stats'] })
+    },
+  })
+
+  const activeStreams = (streamsData?.items ?? []).filter(
+    s => s.status === 'Running' || s.status === 'Starting'
+  )
+
+  const statusColor = (s: string) => {
+    if (s === 'Running') return 'text-green-400'
+    if (s === 'Starting') return 'text-yellow-400'
+    if (s === 'Error') return 'text-red-400'
+    return 'text-gray-400'
+  }
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: 'Active Streams', value: stats?.activeStreams ?? '—' },
+          { label: 'Total Users', value: stats?.totalUsers ?? '—' },
+          { label: 'Active Channels', value: stats?.totalChannels ?? '—' },
+        ].map(({ label, value }) => (
+          <div key={label} className="bg-gray-800 rounded-xl p-5">
+            <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">{label}</p>
+            <p className="text-white text-3xl font-semibold">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Active streams */}
+      <div className="bg-gray-800 rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-700 flex items-center justify-between">
+          <h2 className="text-white font-medium">Active Streams</h2>
+          <span className="text-gray-500 text-xs">Auto-refreshes every 10s</span>
+        </div>
+
+        {streamsLoading && (
+          <p className="text-gray-400 text-sm px-5 py-4">Loading…</p>
+        )}
+
+        {!streamsLoading && activeStreams.length === 0 && (
+          <p className="text-gray-500 text-sm px-5 py-4">No active streams.</p>
+        )}
+
+        {activeStreams.length > 0 && (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-700">
+                <th className="text-left px-5 py-3 text-gray-400 font-medium">User</th>
+                <th className="text-left px-5 py-3 text-gray-400 font-medium">Channel</th>
+                <th className="text-left px-5 py-3 text-gray-400 font-medium">Status</th>
+                <th className="px-5 py-3" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-700">
+              {activeStreams.map(s => (
+                <tr key={s.id} className="hover:bg-gray-750">
+                  <td className="px-5 py-3 text-white font-medium">{s.username ?? `User ${s.userId}`}</td>
+                  <td className="px-5 py-3 text-gray-300">{s.channelName}</td>
+                  <td className={`px-5 py-3 font-medium ${statusColor(s.status)}`}>{s.status}</td>
+                  <td className="px-5 py-3 text-right">
+                    <button
+                      onClick={() => {
+                        if (confirm(`Kill ${s.username ?? 'this user'}'s stream of ${s.channelName}?`))
+                          stopStream.mutate(s.id)
+                      }}
+                      disabled={stopStream.isPending && stopStream.variables === s.id}
+                      className="text-red-400 hover:text-red-300 disabled:opacity-50 text-xs transition-colors"
+                    >
+                      Kill
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   )

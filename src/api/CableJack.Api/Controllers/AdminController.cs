@@ -74,10 +74,23 @@ namespace CableJack.Api.Controllers
             return deleted ? NoContent() : NotFound();
         }
 
+        [HttpGet("dashboard")]
+        public async Task<ActionResult<DashboardStatsDto>> GetDashboardStats()
+        {
+            return Ok(await streamService.GetDashboardStatsAsync());
+        }
+
         [HttpGet("streams")]
         public async Task<PagedResult<StreamResponse>> GetAllStreams([FromQuery] PaginationParams pagination)
         {
             return await streamService.GetAllStreamsAsync(pagination);
+        }
+
+        [HttpPost("streams/{id:int}/stop")]
+        public async Task<ActionResult<StreamResponse>> AdminStopStream(int id)
+        {
+            var stream = await streamService.AdminStopStreamAsync(id);
+            return stream is null ? NotFound() : Ok(stream);
         }
 
         [HttpGet("channels")]
