@@ -25,6 +25,6 @@ FROM runtime
 WORKDIR /app
 COPY --from=api-build /app/publish ./
 COPY --from=frontend /ui/dist ./wwwroot/
-EXPOSE 8080
-ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 5000
+ENV ASPNETCORE_URLS=http://+:5000
 ENTRYPOINT ["dotnet", "CableJack.Api.dll"]

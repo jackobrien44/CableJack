@@ -87,6 +87,17 @@ namespace CableJack.Infrastructure.Services
             return true;
         }
 
+        public async Task<bool> AdminResetPasswordAsync(int userId, AdminResetPasswordRequest request)
+        {
+            var user = await db.Users.FindAsync(userId);
+            if (user is null) return false;
+
+            user.PasswordHash = HashPassword(request.NewPassword);
+            user.ModifiedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<List<ChannelResponse>> GetFavoritesAsync(int userId)
         {
             return await db.UserFavorites
