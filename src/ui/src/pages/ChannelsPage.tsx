@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { channelsApi } from '../api/channels'
 import { categoriesApi } from '../api/categories'
@@ -20,6 +20,7 @@ export default function ChannelsPage() {
   const search = searchParams.get('q') ?? ''
   const categoryId = categoryIdParam ? Number(categoryIdParam) : undefined
   const providerId = searchParams.get('provider') ? Number(searchParams.get('provider')) : undefined
+  const page = searchParams.get('page') ? Number(searchParams.get('page')) : 1
   const [inputValue, setInputValue] = useState(search)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -33,12 +34,9 @@ export default function ChannelsPage() {
     queryFn: providersApi.getAll,
   })
 
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ['channels', search, categoryId, providerId],
-    queryFn: ({ pageParam = 1 }) =>
-      channelsApi.getAll({ page: pageParam, pageSize: PAGE_SIZE, search: search || undefined, categoryId, providerId }),
-    initialPageParam: 1,
-    getNextPageParam: (last) => last.hasNextPage ? last.page + 1 : undefined,
+  const { data, isLoading } = useQuery({
+    queryKey: ['channels', search, categoryId, providerId, page],
+    queryFn: () => channelsApi.getAll({ page, pageSize: PAGE_SIZE, search: search || undefined, categoryId, providerId }),
   })
 
   const { data: favorites } = useQuery({
@@ -66,10 +64,23 @@ export default function ChannelsPage() {
     }, { replace: true })
   }
 
+  function setPage(p: number) {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      if (p === 1) next.delete('page')
+      else next.set('page', String(p))
+      return next
+    })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   function handleSearchChange(value: string) {
     setInputValue(value)
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => setParam('q', value || undefined), 300)
+    debounceRef.current = setTimeout(() => {
+      setParam('q', value || undefined)
+      setPage(1)
+    }, 300)
   }
 
   function setCategoryId(id: number | undefined) {
@@ -78,6 +89,7 @@ export default function ChannelsPage() {
 
   function setProviderId(id: number | undefined) {
     setParam('provider', id?.toString())
+    setPage(1)
   }
 
   function toggleFavorite(channel: ChannelResponse) {
@@ -85,7 +97,8 @@ export default function ChannelsPage() {
     else addFavorite.mutate(channel.id)
   }
 
-  const channels = data?.pages.flatMap(p => p.items) ?? []
+  const channels = data?.items ?? []
+  const totalPages = data ? Math.ceil(data.totalCount / PAGE_SIZE) : 1
   const categories = categoriesData?.items ?? []
   const providers = providersData ?? []
 
@@ -157,15 +170,17 @@ export default function ChannelsPage() {
             ))}
           </div>
 
-          {hasNextPage && (
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-                className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white text-sm px-6 py-2 rounded-lg transition-colors"
-              >
-                {isFetchingNextPage ? 'Loading…' : 'Load more'}
-              </button>
+          {totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-center gap-1">
+              <PageButton onClick={() => setPage(page - 1)} disabled={page === 1}>‹</PageButton>
+              {pageNumbers(page, totalPages).map((p, i) =>
+                p === '…' ? (
+                  <span key={`ellipsis-${i}`} className="px-2 text-gray-600">…</span>
+                ) : (
+                  <PageButton key={p} onClick={() => setPage(p as number)} active={p === page}>{p}</PageButton>
+                )
+              )}
+              <PageButton onClick={() => setPage(page + 1)} disabled={page === totalPages}>›</PageButton>
             </div>
           )}
         </>
@@ -176,4 +191,32 @@ export default function ChannelsPage() {
       )}
     </div>
   )
+}
+
+function PageButton({ onClick, disabled, active, children }: {
+  onClick: () => void
+  disabled?: boolean
+  active?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`min-w-[2.25rem] h-9 px-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-30 ${
+        active
+          ? 'bg-violet-600 text-white'
+          : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function pageNumbers(current: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  if (current <= 4) return [1, 2, 3, 4, 5, '…', total]
+  if (current >= total - 3) return [1, '…', total - 4, total - 3, total - 2, total - 1, total]
+  return [1, '…', current - 1, current, current + 1, '…', total]
 }
