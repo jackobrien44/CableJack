@@ -1,0 +1,21 @@
+services:
+  cablejack:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - cablejack-data:/data
+      - cablejack-streams:/app/wwwroot/streams
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Data Source=/data/cablejack.db
+      Streaming__FfmpegPath: ffmpeg
+      Streaming__HlsListSize: 30
+      Jwt__Key: ${JWT_KEY:?JWT_KEY must be set in .env}
+      Jwt__Issuer: CableJack
+      Jwt__Audience: CableJack
+    restart: unless-stopped
+
+volumes:
+  cablejack-data:
+  cablejack-streams:

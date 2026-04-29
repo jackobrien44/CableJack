@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+**/.git/
+**/node_modules/
+src/ui/dist/
+src/api/**/wwwroot/streams/
+*.md
+.gitignore
+.env
