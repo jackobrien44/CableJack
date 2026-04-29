@@ -138,9 +138,9 @@ export default function PlayerPage() {
           src={isRunning ? { src: stream.url, type: 'application/x-mpegurl' } : undefined}
           minLiveDVRWindow={30}
           className="w-full h-full dark"
-          onProviderSetup={e => {
-            if (isHLSProvider(e.detail)) {
-              e.detail.config = { liveSyncDurationCount: 4 }
+          onProviderSetup={provider => {
+            if (isHLSProvider(provider)) {
+              provider.config = { liveSyncDurationCount: 4 }
             }
           }}
           onCanPlay={() => playerRef.current?.play()}
