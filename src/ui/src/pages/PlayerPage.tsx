@@ -69,10 +69,10 @@ export default function PlayerPage() {
 
 
   return (
-    <div className="flex bg-gray-950 h-svh overflow-hidden">
+    <div className="flex flex-col md:flex-row bg-gray-950 h-svh overflow-hidden">
 
       {/* Player column */}
-      <div className="flex-1 h-svh relative bg-black">
+      <div className="flex-1 h-[45svh] md:h-svh relative bg-black">
 
         {/* Status overlays */}
         {isStarting && (
@@ -144,7 +144,7 @@ export default function PlayerPage() {
 
       {/* Sidebar */}
       {showSidebar && (
-        <div className="w-80 xl:w-96 flex flex-col border-l border-gray-800 h-svh overflow-hidden">
+        <div className="w-full border-t md:w-80 xl:w-96 flex flex-col md:border-l md:border-t-0 border-gray-800 max-h-[55svh] md:max-h-none md:h-svh overflow-hidden">
           {/* Now playing */}
           <div className="px-5 py-4 border-b border-gray-800 shrink-0">
             <p className="text-white font-semibold text-sm mb-2">{stream?.channelName ?? '…'}</p>
