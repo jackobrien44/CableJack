@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace CableJack.Infrastructure.Services
 {
@@ -17,14 +18,16 @@ namespace CableJack.Infrastructure.Services
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly StreamingSettings _settings;
         private readonly string _outputRoot;
+        private readonly ILogger<FFmpegService> _logger;
 
-        public FFmpegService(IServiceScopeFactory scopeFactory, IConfiguration configuration, IHostEnvironment environment)
+        public FFmpegService(IServiceScopeFactory scopeFactory, IConfiguration configuration, IHostEnvironment environment, ILogger<FFmpegService> logger)
         {
             _scopeFactory = scopeFactory;
             _settings = configuration.GetSection("Streaming").Get<StreamingSettings>() ?? new();
             _outputRoot = Path.IsPathRooted(_settings.OutputPath)
                 ? _settings.OutputPath
                 : Path.Combine(environment.ContentRootPath, _settings.OutputPath);
+            _logger = logger;
         }
 
         public async Task<string> StartAsync(int streamId, string sourceUrl)
@@ -61,9 +64,16 @@ namespace CableJack.Infrastructure.Services
                 EnableRaisingEvents = true,
             };
 
+            process.ErrorDataReceived += (_, e) => { if (e.Data != null) _logger.LogDebug("[ffmpeg:{StreamId}] {Line}", streamId, e.Data); };
             process.Exited += (_, _) => _ = OnProcessExitedAsync(streamId);
             process.Start();
+            process.BeginErrorReadLine();
             _processes[streamId] = process;
+
+            // Wait until FFmpeg writes the first playlist before marking as Running
+            var deadline = DateTime.UtcNow.AddSeconds(15);
+            while (!File.Exists(playlistPath) && DateTime.UtcNow < deadline)
+                await Task.Delay(200);
 
             await UpdateStreamAsync(streamId, StreamStatus.Running, url);
             return url;
@@ -133,9 +143,29 @@ namespace CableJack.Infrastructure.Services
                     .FirstOrDefaultAsync();
                 if (openEntry is not null)
                     openEntry.StoppedAt = DateTime.UtcNow;
+
+                CleanupStreamDirectory(stream.Url);
             }
 
             await db.SaveChangesAsync();
+        }
+
+        private void CleanupStreamDirectory(string streamUrl)
+        {
+            try
+            {
+                // streamUrl is like /streams/<slug>/index.m3u8 — extract the slug
+                var slug = streamUrl.Split('/', StringSplitOptions.RemoveEmptyEntries).Skip(1).FirstOrDefault();
+                if (slug is null) return;
+
+                var dir = Path.Combine(_outputRoot, slug);
+                if (Directory.Exists(dir))
+                    Directory.Delete(dir, recursive: true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to clean up stream directory for {Url}", streamUrl);
+            }
         }
     }
 }
