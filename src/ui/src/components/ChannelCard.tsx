@@ -34,17 +34,14 @@ export function ChannelCard({ channel, isFavorite, onPlay, onToggleFavorite, isS
         </div>
       </button>
 
-      <div className="px-3 py-2 flex items-center justify-between gap-2">
-        <span className="text-white text-xs font-medium truncate">{channel.name}</span>
+      <div className="px-3 py-2.5 flex items-center justify-between gap-2">
+        <span className="text-white text-sm font-medium truncate">{channel.name}</span>
         <button
           onClick={onToggleFavorite}
-          className={`text-sm shrink-0 transition-colors ${isFavorite ? 'text-yellow-400' : 'text-gray-600 hover:text-yellow-400'}`}
+          className={`text-2xl shrink-0 transition-colors ${isFavorite ? 'text-yellow-400' : 'text-gray-600 hover:text-yellow-400'}`}
         >
           ★
         </button>
-      </div>
-      <div className="px-3 pb-2">
-        <span className="text-gray-500 text-xs truncate block">{channel.categoryName}</span>
       </div>
     </div>
   )

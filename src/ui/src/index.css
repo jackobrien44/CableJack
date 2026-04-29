@@ -9,6 +9,10 @@
   --color-border: #374151;
 }
 
+:root {
+  font-size: 18px;
+}
+
 body {
   background-color: #111827;
   color: #f9fafb;

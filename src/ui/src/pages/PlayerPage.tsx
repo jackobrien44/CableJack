@@ -15,10 +15,12 @@ export default function PlayerPage() {
   const startedRef = useRef(false)
   const [streamId, setStreamId] = useState<number | null>(null)
   const [startError, setStartError] = useState<string | null>(null)
-  const [paused, setPaused] = useState(false)
   const [hlsError, setHlsError] = useState<string | null>(null)
+  const ffmpegPaused = useRef(false)
+  const [controlsVisible, setControlsVisible] = useState(true)
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showSidebar, setShowSidebar] = useState(true)
-  const [showSchedule, setShowSchedule] = useState(true)
+  const [showSchedule, setShowSchedule] = useState(false)
 
   useEffect(() => {
     if (startedRef.current) return
@@ -59,15 +61,8 @@ export default function PlayerPage() {
     onSuccess: () => navigate(-1),
   })
 
-  const pause = useMutation({
-    mutationFn: () => streamsApi.pause(streamId!),
-    onSuccess: () => setPaused(true),
-  })
-
-  const resume = useMutation({
-    mutationFn: () => streamsApi.resume(streamId!),
-    onSuccess: () => setPaused(false),
-  })
+  const pause = useMutation({ mutationFn: () => streamsApi.pause(streamId!) })
+  const resume = useMutation({ mutationFn: () => streamsApi.resume(streamId!) })
 
   useEffect(() => {
     const url = stream?.url
@@ -97,15 +92,35 @@ export default function PlayerPage() {
           setHlsError('Failed to load stream. The source may be unavailable.')
         }
       })
+      function onPause() {
+        ffmpegPaused.current = true
+        pause.mutate()
+      }
+      function onPlay() {
+        if (!ffmpegPaused.current) return
+        ffmpegPaused.current = false
+        resume.mutate()
+      }
+      video.addEventListener('pause', onPause)
+      video.addEventListener('play', onPlay)
+
       return () => {
         hls.destroy()
         hlsRef.current = null
+        video.removeEventListener('pause', onPause)
+        video.removeEventListener('play', onPlay)
       }
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = url
       video.play().catch(() => {})
     }
   }, [stream?.url, stream?.status])
+
+  function handleVideoMouseMove() {
+    setControlsVisible(true)
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current)
+    controlsTimerRef.current = setTimeout(() => setControlsVisible(false), 3000)
+  }
 
   const upcomingList = upcoming?.filter(p => p.id !== nowPlaying?.id) ?? []
   const hasSchedule = upcomingList.length > 0
@@ -120,7 +135,7 @@ export default function PlayerPage() {
         <div className={`flex flex-col ${showSidebar ? 'lg:flex-1' : 'w-full'}`}>
 
           {/* Video */}
-          <div className="relative bg-black" style={{ aspectRatio: '16/9' }}>
+          <div className="relative bg-black" style={{ aspectRatio: '16/9' }} onMouseMove={handleVideoMouseMove} onMouseLeave={() => setControlsVisible(false)}>
             {((startError == null && streamId == null) || stream?.status === 'Starting') && (
               <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
                 Starting stream…
@@ -142,6 +157,26 @@ export default function PlayerPage() {
               </div>
             )}
             <video ref={videoRef} className="w-full h-full" controls playsInline />
+
+            {/* Stop / back button */}
+            <button
+              onClick={() => stop.mutate()}
+              disabled={stop.isPending}
+              className={`absolute top-3 left-3 w-9 h-9 flex items-center justify-center rounded-sm bg-black/60 hover:bg-black/90 text-white text-xl leading-none transition-opacity disabled:opacity-40 backdrop-blur-sm ${controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+              title="Stop and go back"
+            >
+              ✕
+            </button>
+
+            {/* Info button — above pause, only when sidebar hidden */}
+            {!showSidebar && (
+              <button
+                onClick={() => setShowSidebar(true)}
+                className={`absolute bottom-14 left-3 w-9 h-9 flex items-center justify-center rounded-sm bg-black/60 hover:bg-black/90 text-white text-xs leading-none transition-opacity backdrop-blur-sm ${controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+              >
+                Info
+              </button>
+            )}
           </div>
 
           {/* Schedule toggle bar */}
@@ -164,22 +199,20 @@ export default function PlayerPage() {
         </div>
 
         {/* Sidebar */}
-        <div className={`lg:w-80 xl:w-96 flex flex-col border-l border-gray-800 ${showSidebar ? '' : 'lg:w-auto lg:border-l-0'}`}>
-          {/* Sidebar header — always visible, contains collapse toggle */}
-          <div className="flex items-center justify-between px-5 py-3 border-b border-gray-800">
-            <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-white text-xs transition-colors">
-              ← Back
-            </button>
-            <button
-              onClick={() => setShowSidebar(v => !v)}
-              className="text-gray-500 hover:text-white text-xs transition-colors flex items-center gap-1"
-            >
-              {showSidebar ? 'Hide info ›' : '‹ Info'}
-            </button>
-          </div>
+        {showSidebar && (
+          <div className="lg:w-80 xl:w-96 flex flex-col border-l border-gray-800">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-800">
+              <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-white text-xs transition-colors">
+                ← Back
+              </button>
+              <button
+                onClick={() => setShowSidebar(false)}
+                className="text-gray-500 hover:text-white text-xs transition-colors"
+              >
+                Hide info ›
+              </button>
+            </div>
 
-          {/* Sidebar body */}
-          {showSidebar && (
             <div className="flex flex-col p-5 gap-4">
               <div>
                 <h2 className="text-white font-semibold text-lg">{stream?.channelName ?? '…'}</h2>
@@ -197,66 +230,9 @@ export default function PlayerPage() {
                   <p className="text-gray-600 text-sm mt-1">No EPG data</p>
                 )}
               </div>
-
-              <div className="flex gap-2 pt-2">
-                {!paused ? (
-                  <button
-                    onClick={() => pause.mutate()}
-                    disabled={pause.isPending || stream?.status !== 'Running'}
-                    className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
-                  >
-                    Pause
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => resume.mutate()}
-                    disabled={resume.isPending}
-                    className="flex-1 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
-                  >
-                    Resume
-                  </button>
-                )}
-                <button
-                  onClick={() => stop.mutate()}
-                  disabled={stop.isPending || streamId === null}
-                  className="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
-                >
-                  Stop
-                </button>
-              </div>
             </div>
-          )}
-
-          {/* Controls strip when sidebar body is hidden */}
-          {!showSidebar && (
-            <div className="flex gap-2 px-5 py-3">
-              {!paused ? (
-                <button
-                  onClick={() => pause.mutate()}
-                  disabled={pause.isPending || stream?.status !== 'Running'}
-                  className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
-                >
-                  Pause
-                </button>
-              ) : (
-                <button
-                  onClick={() => resume.mutate()}
-                  disabled={resume.isPending}
-                  className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
-                >
-                  Resume
-                </button>
-              )}
-              <button
-                onClick={() => stop.mutate()}
-                disabled={stop.isPending || streamId === null}
-                className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
-              >
-                Stop
-              </button>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )
