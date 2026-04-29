@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { authApi } from '../api/auth'
-import { AuthContext } from './authContext'
-import type { AuthContextValue } from './authContext'
+import { AuthContext } from './authContextDef'
+import type { AuthContextValue } from './authContextDef'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<Omit<AuthContextValue, 'login' | 'logout' | 'isAuthenticated' | 'isAdmin'>>(() => ({
