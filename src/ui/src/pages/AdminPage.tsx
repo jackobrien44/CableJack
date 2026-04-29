@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi, type UpdateUserRequest } from '../api/admin'
+import { channelsApi } from '../api/channels'
 import { useAuth } from '../hooks/useAuth'
 import type { ImportResult, UserResponse } from '../types/api'
 
@@ -41,8 +42,17 @@ function authHeaders() {
 }
 
 function ImportsTab() {
+  const queryClient = useQueryClient()
   const [m3uResult, setM3uResult] = useState<ImportResult | null>(null)
   const [epgResult, setEpgResult] = useState<ImportResult | null>(null)
+
+  const clearChannels = useMutation({
+    mutationFn: () => channelsApi.deleteAll(),
+    onSuccess: ({ deleted }) => {
+      queryClient.invalidateQueries({ queryKey: ['channels'] })
+      alert(`Deleted ${deleted} channel${deleted !== 1 ? 's' : ''}.`)
+    },
+  })
 
   const importM3UFile = useMutation({
     mutationFn: async (file: File) => {
@@ -109,6 +119,21 @@ function ImportsTab() {
         error={importEPG.error?.message}
         onFile={f => importEPG.mutate(f)}
       />
+      <div className="bg-gray-800 rounded-xl p-5">
+        <h2 className="text-white font-medium mb-3">Danger Zone</h2>
+        <button
+          onClick={() => {
+            if (confirm('Delete all channels? This cannot be undone.')) clearChannels.mutate()
+          }}
+          disabled={clearChannels.isPending}
+          className="bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+        >
+          {clearChannels.isPending ? 'Deleting…' : 'Clear All Channels'}
+        </button>
+        {clearChannels.error && (
+          <p className="text-red-400 text-sm mt-3">{clearChannels.error.message}</p>
+        )}
+      </div>
     </div>
   )
 }

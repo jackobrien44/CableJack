@@ -17,4 +17,6 @@ export const channelsApi = {
   },
 
   getById: (id: number) => api.get<ChannelResponse>(`/channels/${id}`),
+
+  deleteAll: () => api.delete<{ deleted: number }>('/channels'),
 }

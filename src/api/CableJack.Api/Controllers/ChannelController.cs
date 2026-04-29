@@ -38,6 +38,14 @@ namespace CableJack.Api.Controllers
             return channel is null ? NotFound() : Ok(channel);
         }
 
+        [HttpDelete]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> DeleteAllChannels()
+        {
+            var count = await channelService.DeleteAllChannelsAsync();
+            return Ok(new { deleted = count });
+        }
+
         [HttpDelete("{id:int}")]
         [Authorize(Roles = "Administrator")]
         public async Task<IActionResult> DeleteChannel(int id)

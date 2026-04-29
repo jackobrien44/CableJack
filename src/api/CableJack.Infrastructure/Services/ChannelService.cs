@@ -86,6 +86,11 @@ namespace CableJack.Infrastructure.Services
             return ToResponse(channel);
         }
 
+        public async Task<int> DeleteAllChannelsAsync()
+        {
+            return await db.Channels.ExecuteDeleteAsync();
+        }
+
         public async Task<bool> DeleteChannelAsync(int id)
         {
             var channel = await db.Channels.FindAsync(id);

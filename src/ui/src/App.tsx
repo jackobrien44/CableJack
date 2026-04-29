@@ -47,7 +47,9 @@ function AppWithToast() {
                 <Route path="history" element={<HistoryPage />} />
                 <Route path="guide" element={<EpgPage />} />
                 <Route path="profile" element={<ProfilePage />} />
-                <Route path="admin" element={<AdminPage />} />
+                <Route element={<ProtectedRoute adminOnly />}>
+                  <Route path="admin" element={<AdminPage />} />
+                </Route>
               </Route>
               <Route path="player/:id" element={<PlayerPage />} />
             </Route>

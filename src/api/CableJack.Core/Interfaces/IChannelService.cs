@@ -9,5 +9,6 @@ namespace CableJack.Core.Interfaces
         Task<ChannelResponse> CreateChannelAsync(CreateChannelRequest request);
         Task<ChannelResponse?> UpdateChannelAsync(int id, UpdateChannelRequest request);
         Task<bool> DeleteChannelAsync(int id);
+        Task<int> DeleteAllChannelsAsync();
     }
 }
