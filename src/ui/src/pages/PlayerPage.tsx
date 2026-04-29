@@ -67,7 +67,12 @@ export default function PlayerPage() {
         video.play().catch(() => {})
       })
       hls.on(Hls.Events.ERROR, (_, data) => {
-        if (data.fatal) {
+        console.warn('[hls] error', data.type, data.details, data.fatal, data)
+        if (!data.fatal) return
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          console.warn('[hls] attempting media error recovery')
+          hls.recoverMediaError()
+        } else {
           setHlsError('Failed to load stream. The source may be unavailable.')
         }
       })

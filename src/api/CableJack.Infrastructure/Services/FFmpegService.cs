@@ -43,6 +43,7 @@ namespace CableJack.Infrastructure.Services
             var args = string.Join(" ",
                 $"-i \"{sourceUrl}\"",
                 "-c copy",
+                "-bsf:a aac_adtstoasc",
                 "-f hls",
                 $"-hls_time {_settings.HlsTime}",
                 $"-hls_list_size {_settings.HlsListSize}",
@@ -70,10 +71,17 @@ namespace CableJack.Infrastructure.Services
             process.BeginErrorReadLine();
             _processes[streamId] = process;
 
+            _logger.LogInformation("[stream:{StreamId}] ffmpeg started (pid {Pid}), waiting for playlist at {Path}", streamId, process.Id, playlistPath);
+
             // Wait until FFmpeg writes the first playlist before marking as Running
             var deadline = DateTime.UtcNow.AddSeconds(15);
             while (!File.Exists(playlistPath) && DateTime.UtcNow < deadline)
                 await Task.Delay(200);
+
+            if (!File.Exists(playlistPath))
+                _logger.LogWarning("[stream:{StreamId}] timed out waiting for playlist — marking Running anyway", streamId);
+            else
+                _logger.LogInformation("[stream:{StreamId}] playlist ready, marking Running. URL={Url}", streamId, url);
 
             await UpdateStreamAsync(streamId, StreamStatus.Running, url);
             return url;
@@ -121,6 +129,7 @@ namespace CableJack.Infrastructure.Services
             var exitCode = process.ExitCode;
             process.Dispose();
 
+            _logger.LogInformation("[stream:{StreamId}] ffmpeg exited with code {ExitCode}", streamId, exitCode);
             await UpdateStreamAsync(streamId, exitCode == 0 ? StreamStatus.Stopped : StreamStatus.Error);
         }
 
@@ -160,7 +169,14 @@ namespace CableJack.Infrastructure.Services
 
                 var dir = Path.Combine(_outputRoot, slug);
                 if (Directory.Exists(dir))
+                {
                     Directory.Delete(dir, recursive: true);
+                    _logger.LogInformation("[stream] cleaned up directory {Dir}", dir);
+                }
+                else
+                {
+                    _logger.LogDebug("[stream] cleanup skipped, directory not found: {Dir}", dir);
+                }
             }
             catch (Exception ex)
             {

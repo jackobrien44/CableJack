@@ -1,5 +1,8 @@
 using CableJack.Api;
 using CableJack.Api.Middleware;
+using CableJack.Core.Enums;
+using CableJack.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +28,17 @@ var app = builder.Build();
 
 Directory.CreateDirectory(Path.Combine(app.Environment.ContentRootPath, "wwwroot", "streams"));
 
+// Reset any streams left in Starting/Running state from a previous run
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<CableJackDbContext>();
+    var reset = await db.Streams
+        .Where(s => s.Status == StreamStatus.Starting || s.Status == StreamStatus.Running)
+        .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, StreamStatus.Error));
+    if (reset > 0)
+        app.Logger.LogInformation("Reset {Count} orphaned stream(s) to Error on startup", reset);
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseOpenApi();
@@ -34,7 +48,10 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseHttpsRedirection();
 app.UseCors("Development");
-app.UseStaticFiles();
+var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+provider.Mappings[".m3u8"] = "application/vnd.apple.mpegurl";
+provider.Mappings[".ts"] = "video/mp2t";
+app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = provider });
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
