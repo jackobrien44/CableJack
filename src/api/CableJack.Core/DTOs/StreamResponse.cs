@@ -9,6 +9,7 @@ namespace CableJack.Core.DTOs
         public required StreamStatus Status { get; set; }
         public required int ChannelId { get; set; }
         public required string ChannelName { get; set; }
+        public string? ChannelLogoUrl { get; set; }
         public required int UserId { get; set; }
     }
 }

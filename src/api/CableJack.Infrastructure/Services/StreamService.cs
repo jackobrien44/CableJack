@@ -154,6 +154,7 @@ namespace CableJack.Infrastructure.Services
             Status = s.Status,
             ChannelId = s.ChannelId,
             ChannelName = s.Channel.Name,
+            ChannelLogoUrl = s.Channel.LogoUrl,
             UserId = s.UserId,
         };
     }
