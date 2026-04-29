@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tansta
 
 import { channelsApi } from '../api/channels'
 import { categoriesApi } from '../api/categories'
+import { providersApi } from '../api/providers'
 import { userApi } from '../api/user'
 import { ChannelCard } from '../components/ChannelCard'
 import { useStartStream } from '../hooks/useStartStream'
@@ -15,6 +16,7 @@ export default function ChannelsPage() {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [categoryId, setCategoryId] = useState<number | undefined>()
+  const [providerId, setProviderId] = useState<number | undefined>()
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { data: categoriesData } = useQuery({
@@ -22,10 +24,15 @@ export default function ChannelsPage() {
     queryFn: categoriesApi.getAll,
   })
 
+  const { data: providersData } = useQuery({
+    queryKey: ['providers'],
+    queryFn: providersApi.getAll,
+  })
+
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ['channels', debouncedSearch, categoryId],
+    queryKey: ['channels', debouncedSearch, categoryId, providerId],
     queryFn: ({ pageParam = 1 }) =>
-      channelsApi.getAll({ page: pageParam, pageSize: PAGE_SIZE, search: debouncedSearch || undefined, categoryId }),
+      channelsApi.getAll({ page: pageParam, pageSize: PAGE_SIZE, search: debouncedSearch || undefined, categoryId, providerId }),
     initialPageParam: 1,
     getNextPageParam: (last) => last.hasNextPage ? last.page + 1 : undefined,
   })
@@ -59,18 +66,33 @@ export default function ChannelsPage() {
 
   const channels = data?.pages.flatMap(p => p.items) ?? []
   const categories = categoriesData?.items ?? []
+  const providers = providersData ?? []
 
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-4 gap-4">
         <h1 className="text-xl font-semibold text-white shrink-0">Channels</h1>
-        <input
-          type="search"
-          placeholder="Search channels…"
-          value={search}
-          onChange={e => handleSearchChange(e.target.value)}
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 w-56"
-        />
+        <div className="flex items-center gap-2">
+          {providers.length > 0 && (
+            <select
+              value={providerId ?? ''}
+              onChange={e => setProviderId(e.target.value ? Number(e.target.value) : undefined)}
+              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+            >
+              <option value="">All providers</option>
+              {providers.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          )}
+          <input
+            type="search"
+            placeholder="Search channels…"
+            value={search}
+            onChange={e => handleSearchChange(e.target.value)}
+            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 w-56"
+          />
+        </div>
       </div>
 
       {categories.length > 0 && (

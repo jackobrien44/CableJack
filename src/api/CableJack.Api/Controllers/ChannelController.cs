@@ -10,9 +10,9 @@ namespace CableJack.Api.Controllers
     public class ChannelController(IChannelService channelService) : ControllerBase
     {
         [HttpGet]
-        public async Task<PagedResult<ChannelResponse>> GetChannels([FromQuery] PaginationParams pagination, [FromQuery] int? categoryId, [FromQuery] string? search)
+        public async Task<PagedResult<ChannelResponse>> GetChannels([FromQuery] PaginationParams pagination, [FromQuery] int? categoryId, [FromQuery] int? providerId, [FromQuery] string? search)
         {
-            return await channelService.GetChannelsAsync(pagination, categoryId, search: search);
+            return await channelService.GetChannelsAsync(pagination, categoryId, search: search, providerId: providerId);
         }
 
         [HttpGet("{id:int}")]
