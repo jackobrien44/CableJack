@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react'
+import { useRef, useState } from 'react'
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 
 import { channelsApi } from '../api/channels'
@@ -13,10 +14,13 @@ const PAGE_SIZE = 48
 
 export default function ChannelsPage() {
   const queryClient = useQueryClient()
-  const [search, setSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [categoryId, setCategoryId] = useState<number | undefined>()
-  const [providerId, setProviderId] = useState<number | undefined>()
+  const { categoryId: categoryIdParam } = useParams<{ categoryId?: string }>()
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const search = searchParams.get('q') ?? ''
+  const categoryId = categoryIdParam ? Number(categoryIdParam) : undefined
+  const providerId = searchParams.get('provider') ? Number(searchParams.get('provider')) : undefined
+  const [inputValue, setInputValue] = useState(search)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { data: categoriesData } = useQuery({
@@ -30,9 +34,9 @@ export default function ChannelsPage() {
   })
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ['channels', debouncedSearch, categoryId, providerId],
+    queryKey: ['channels', search, categoryId, providerId],
     queryFn: ({ pageParam = 1 }) =>
-      channelsApi.getAll({ page: pageParam, pageSize: PAGE_SIZE, search: debouncedSearch || undefined, categoryId, providerId }),
+      channelsApi.getAll({ page: pageParam, pageSize: PAGE_SIZE, search: search || undefined, categoryId, providerId }),
     initialPageParam: 1,
     getNextPageParam: (last) => last.hasNextPage ? last.page + 1 : undefined,
   })
@@ -53,10 +57,27 @@ export default function ChannelsPage() {
   })
   const startStream = useStartStream()
 
+  function setParam(key: string, value: string | undefined) {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      if (value) next.set(key, value)
+      else next.delete(key)
+      return next
+    }, { replace: true })
+  }
+
   function handleSearchChange(value: string) {
-    setSearch(value)
+    setInputValue(value)
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => setDebouncedSearch(value), 300)
+    debounceRef.current = setTimeout(() => setParam('q', value || undefined), 300)
+  }
+
+  function setCategoryId(id: number | undefined) {
+    navigate(id ? `/categories/${id}` : '/')
+  }
+
+  function setProviderId(id: number | undefined) {
+    setParam('provider', id?.toString())
   }
 
   function toggleFavorite(channel: ChannelResponse) {
@@ -88,7 +109,7 @@ export default function ChannelsPage() {
           <input
             type="search"
             placeholder="Search channels…"
-            value={search}
+            value={inputValue}
             onChange={e => handleSearchChange(e.target.value)}
             className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 w-56"
           />

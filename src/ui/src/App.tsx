@@ -43,6 +43,7 @@ function AppWithToast() {
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
                 <Route index element={<ChannelsPage />} />
+                <Route path="categories/:categoryId" element={<ChannelsPage />} />
                 <Route path="favorites" element={<FavoritesPage />} />
                 <Route path="history" element={<HistoryPage />} />
                 <Route path="guide" element={<EpgPage />} />

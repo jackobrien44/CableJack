@@ -19,3 +19,9 @@ body {
 #root {
   min-height: 100svh;
 }
+
+video::-webkit-media-controls-current-time-display,
+video::-webkit-media-controls-time-remaining-display,
+video::-webkit-media-controls-timeline {
+  display: none;
+}
