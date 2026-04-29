@@ -10,7 +10,7 @@ import { ChannelCard } from '../components/ChannelCard'
 import { useStartStream } from '../hooks/useStartStream'
 import type { ChannelResponse } from '../types/api'
 
-const MIN_CARD_W = 175
+const MIN_CARD_W = 220
 const MIN_CARD_H = 240
 const GAP = 12
 
