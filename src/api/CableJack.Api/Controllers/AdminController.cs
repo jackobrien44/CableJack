@@ -10,8 +10,22 @@ namespace CableJack.Api.Controllers
     [ApiController]
     [Route("api/admin")]
     [Authorize(Roles = "Administrator")]
-    public class AdminController(IUserService userService, IStreamService streamService, IChannelService channelService, IImportService importService) : ControllerBase
+    public class AdminController(IUserService userService, IStreamService streamService, IChannelService channelService, IImportService importService, ISettingsService settingsService) : ControllerBase
     {
+        [HttpGet("settings")]
+        public async Task<ActionResult<SystemSettingsDto>> GetSettings()
+        {
+            var settings = await settingsService.GetSettingsAsync();
+            return Ok(settings);
+        }
+
+        [HttpPut("settings")]
+        public async Task<ActionResult<SystemSettingsDto>> UpdateSettings([FromBody] SystemSettingsDto request)
+        {
+            var settings = await settingsService.UpdateSettingsAsync(request);
+            return Ok(settings);
+        }
+
         [HttpGet("users")]
         public async Task<PagedResult<UserResponse>> GetUsers([FromQuery] PaginationParams pagination)
         {
@@ -30,6 +44,13 @@ namespace CableJack.Api.Controllers
         {
             var user = await userService.UpdateUserAsync(userId, request);
             return user is null ? NotFound() : Ok(user);
+        }
+
+        [HttpPost("users/{userId:int}/reset-password")]
+        public async Task<IActionResult> ResetUserPassword(int userId, [FromBody] AdminResetPasswordRequest request)
+        {
+            var result = await userService.AdminResetPasswordAsync(userId, request);
+            return result ? NoContent() : NotFound();
         }
 
         [HttpDelete("users/{userId:int}")]

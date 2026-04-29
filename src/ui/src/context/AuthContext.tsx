@@ -1,31 +1,17 @@
-import { createContext, useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { authApi } from '../api/auth'
-import type { UserResponse } from '../types/api'
-
-interface AuthState {
-  user: UserResponse | null
-  isLoading: boolean
-}
-
-interface AuthContextValue extends AuthState {
-  login: (username: string, password: string) => Promise<void>
-  logout: () => Promise<void>
-  isAuthenticated: boolean
-  isAdmin: boolean
-}
-
-export const AuthContext = createContext<AuthContextValue | null>(null)
+import { AuthContext } from './authContextDef'
+import type { AuthContextValue } from './authContextDef'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({ user: null, isLoading: true })
+  const [state, setState] = useState<Omit<AuthContextValue, 'login' | 'logout' | 'isAuthenticated' | 'isAdmin'>>(() => ({
+    user: null,
+    isLoading: !!localStorage.getItem('accessToken'),
+  }))
 
-  // On mount, validate stored token by fetching the user profile
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
-    if (!token) {
-      setState({ user: null, isLoading: false })
-      return
-    }
+    if (!token) return
     import('../api/user').then(({ userApi }) =>
       userApi.getMe()
         .then(user => setState({ user, isLoading: false }))
@@ -37,7 +23,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
-  // When the token refresh fails in the API client, clear auth state
   useEffect(() => {
     const handler = () => setState({ user: null, isLoading: false })
     window.addEventListener('auth:logout', handler)
