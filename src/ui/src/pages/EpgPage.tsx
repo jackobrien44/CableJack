@@ -24,7 +24,7 @@ export default function EpgPage() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between mb-6 gap-2">
         <h1 className="text-xl font-semibold text-white">TV Guide</h1>
         <span className="text-gray-500 text-xs">Now playing · updates every minute</span>
       </div>

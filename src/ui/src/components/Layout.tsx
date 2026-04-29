@@ -1,7 +1,13 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
-const navItems = [
+interface NavItem {
+  to: string
+  label: string
+  icon: string
+}
+
+const navItems: NavItem[] = [
   { to: '/', label: 'Channels', icon: '📺' },
   { to: '/guide', label: 'TV Guide', icon: '📋' },
   { to: '/favorites', label: 'Favorites', icon: '⭐' },
@@ -9,9 +15,52 @@ const navItems = [
   { to: '/profile', label: 'Profile', icon: '👤' },
 ]
 
-const adminItems = [
+const adminItems: NavItem[] = [
   { to: '/admin', label: 'Admin', icon: '⚙️' },
 ]
+
+interface NavLinkProps {
+  to: string
+  label: string
+  icon: string
+  end?: boolean
+}
+
+function SidebarLink({ to, label, icon, end }: NavLinkProps) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+          isActive
+            ? 'bg-violet-600 text-white'
+            : 'text-gray-400 hover:text-white hover:bg-gray-800'
+        }`
+      }
+    >
+      <span>{icon}</span>
+      {label}
+    </NavLink>
+  )
+}
+
+function TabLink({ to, label, icon, end }: NavLinkProps) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) =>
+        `flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-xs transition-colors ${
+          isActive ? 'text-violet-400' : 'text-gray-500'
+        }`
+      }
+    >
+      <span className="text-lg leading-none">{icon}</span>
+      <span>{label}</span>
+    </NavLink>
+  )
+}
 
 export default function Layout() {
   const { user, logout, isAdmin } = useAuth()
@@ -25,40 +74,24 @@ export default function Layout() {
 
         <nav className="flex-1 px-3 py-4 space-y-1">
           {navItems.map(item => (
-            <NavLink
+            <SidebarLink
               key={item.to}
               to={item.to}
+              label={item.label}
+              icon={item.icon}
               end={item.to === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  isActive
-                    ? 'bg-violet-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
-                }`
-              }
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </NavLink>
+            />
           ))}
 
           {isAdmin && (
             <div className="pt-3 mt-3 border-t border-gray-800 space-y-1">
               {adminItems.map(item => (
-                <NavLink
+                <SidebarLink
                   key={item.to}
                   to={item.to}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                      isActive
-                        ? 'bg-violet-600 text-white'
-                        : 'text-gray-400 hover:text-white hover:bg-gray-800'
-                    }`
-                  }
-                >
-                  <span>{item.icon}</span>
-                  {item.label}
-                </NavLink>
+                  label={item.label}
+                  icon={item.icon}
+                />
               ))}
             </div>
           )}
@@ -82,33 +115,21 @@ export default function Layout() {
       {/* Bottom tab bar — mobile only */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-gray-900 border-t border-gray-800 flex">
         {navItems.map(item => (
-          <NavLink
+          <TabLink
             key={item.to}
             to={item.to}
+            label={item.label}
+            icon={item.icon}
             end={item.to === '/'}
-            className={({ isActive }) =>
-              `flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-xs transition-colors ${
-                isActive ? 'text-violet-400' : 'text-gray-500'
-              }`
-            }
-          >
-            <span className="text-lg leading-none">{item.icon}</span>
-            <span>{item.label}</span>
-          </NavLink>
+          />
         ))}
         {isAdmin && adminItems.map(item => (
-          <NavLink
+          <TabLink
             key={item.to}
             to={item.to}
-            className={({ isActive }) =>
-              `flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-xs transition-colors ${
-                isActive ? 'text-violet-400' : 'text-gray-500'
-              }`
-            }
-          >
-            <span className="text-lg leading-none">{item.icon}</span>
-            <span>{item.label}</span>
-          </NavLink>
+            label={item.label}
+            icon={item.icon}
+          />
         ))}
       </nav>
     </div>

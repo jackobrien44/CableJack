@@ -118,7 +118,7 @@ export default function ChannelsPage() {
     })
     ro.observe(el)
     return () => ro.disconnect()
-  }, [channels.length > 0])
+  }, [])
   const categories = categoriesData?.items ?? []
   const providers = providersData ?? []
 
