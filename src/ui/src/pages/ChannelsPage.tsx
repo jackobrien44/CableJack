@@ -10,7 +10,7 @@ import { ChannelCard } from '../components/ChannelCard'
 import { useStartStream } from '../hooks/useStartStream'
 import type { ChannelResponse } from '../types/api'
 
-const MIN_CARD_W = 220
+const MIN_CARD_W = 160
 const MIN_CARD_H = 210
 const GAP = 12
 
@@ -112,7 +112,7 @@ export default function ChannelsPage() {
     if (!el) return
     const ro = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect
-      const cols = Math.max(2, Math.floor((width + GAP) / (MIN_CARD_W + GAP)))
+      const cols = Math.max(1, Math.floor((width + GAP) / (MIN_CARD_W + GAP)))
       const rows = Math.max(1, Math.floor((height + GAP) / (MIN_CARD_H + GAP)))
       setGridDims(prev => prev.cols === cols && prev.rows === rows ? prev : { cols, rows })
     })
@@ -124,14 +124,14 @@ export default function ChannelsPage() {
 
   return (
     <div className="h-svh flex flex-col overflow-hidden px-6">
-      <div className="flex items-center justify-between pt-6 pb-4 gap-4 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-6 pb-4 gap-3 shrink-0">
         <h1 className="text-xl font-semibold text-white shrink-0">Channels</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           {providers.length > 0 && (
             <select
               value={providerId ?? ''}
               onChange={e => setProviderId(e.target.value ? Number(e.target.value) : undefined)}
-              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500 w-full sm:w-auto"
             >
               <option value="">All providers</option>
               {providers.map(p => (
@@ -144,7 +144,7 @@ export default function ChannelsPage() {
             placeholder="Search channels…"
             value={inputValue}
             onChange={e => handleSearchChange(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 w-56"
+            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 w-full sm:w-56"
           />
         </div>
       </div>
