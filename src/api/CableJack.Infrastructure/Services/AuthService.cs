@@ -5,7 +5,9 @@ using CableJack.Core.DTOs;
 using CableJack.Core.Enums;
 using CableJack.Core.Interfaces;
 using CableJack.Core.Models;
+using CableJack.Core.Settings;
 using CableJack.Infrastructure.Data;
+using CableJack.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -17,6 +19,13 @@ namespace CableJack.Infrastructure.Services
     {
         public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
         {
+            var registrationMode = await db.SystemSettings
+                .GetSettingAsync<RegistrationMode>(SettingKeys.RegistrationMode)
+                ?? RegistrationMode.Open;
+
+            if (registrationMode == RegistrationMode.Disabled)
+                throw new InvalidOperationException("Registration is currently disabled.");
+
             if (await db.Users.AnyAsync(u => u.Username == request.Username))
                 throw new InvalidOperationException("Username already taken.");
 

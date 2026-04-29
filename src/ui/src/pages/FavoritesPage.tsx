@@ -24,7 +24,6 @@ export default function FavoritesPage() {
   })
 
   const startStream = useStartStream()
-  const hasFavorites = (favorites?.length ?? 0) > 0
 
   useEffect(() => {
     if (!gridEl) return

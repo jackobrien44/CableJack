@@ -66,7 +66,7 @@ export default function Layout() {
   const { user, logout, isAdmin } = useAuth()
 
   return (
-    <div className="flex min-h-svh">
+    <div className="flex h-svh">
       <aside className="hidden md:flex md:flex-col w-56 bg-gray-900 border-r border-gray-800 shrink-0">
         <div className="px-5 py-5 border-b border-gray-800">
           <span className="text-white font-semibold text-lg">CableJack</span>
