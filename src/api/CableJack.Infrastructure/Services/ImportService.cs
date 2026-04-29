@@ -10,7 +10,7 @@ namespace CableJack.Infrastructure.Services
 {
     public sealed partial class ImportService(CableJackDbContext db) : IImportService
     {
-        public async Task<ImportResult> ImportM3UAsync(Stream stream)
+        public async Task<ImportResult> ImportM3UAsync(Stream stream, int? providerId = null)
         {
             var lines = await ReadLinesAsync(stream);
             var result = new ImportResult
@@ -70,6 +70,7 @@ namespace CableJack.Infrastructure.Services
                     existing.TvgId = tvgId;
                     existing.LogoUrl = logoUrl;
                     existing.CategoryId = category.Id;
+                    existing.ProviderId = providerId;
                     result.ChannelsUpdated++;
                 }
                 else
@@ -82,6 +83,7 @@ namespace CableJack.Infrastructure.Services
                         SourceUrl = url,
                         LogoUrl = logoUrl,
                         CategoryId = category.Id,
+                        ProviderId = providerId,
                         IsActive = true,
                         SortOrder = channels.Count,
                     };

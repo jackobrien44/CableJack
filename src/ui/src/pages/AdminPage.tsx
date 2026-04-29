@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react'
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminApi, type UpdateUserRequest } from '../api/admin'
 import { channelsApi } from '../api/channels'
 import { categoriesApi } from '../api/categories'
+import { providersApi, type CreateProviderRequest } from '../api/providers'
 import { useAuth } from '../hooks/useAuth'
-import type { ImportResult, UserResponse } from '../types/api'
+import type { ImportResult, ProviderResponse, UserResponse } from '../types/api'
 
-type Tab = 'imports' | 'users'
+type Tab = 'imports' | 'providers' | 'users'
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('imports')
@@ -16,7 +17,7 @@ export default function AdminPage() {
       <h1 className="text-xl font-semibold text-white mb-6">Admin</h1>
 
       <div className="flex gap-1 mb-6 bg-gray-800 rounded-lg p-1 w-fit">
-        {(['imports', 'users'] as Tab[]).map(t => (
+        {(['imports', 'providers', 'users'] as Tab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -30,6 +31,7 @@ export default function AdminPage() {
       </div>
 
       {tab === 'imports' && <ImportsTab />}
+      {tab === 'providers' && <ProvidersTab />}
       {tab === 'users' && <UsersTab />}
     </div>
   )
@@ -46,6 +48,12 @@ function ImportsTab() {
   const queryClient = useQueryClient()
   const [m3uResult, setM3uResult] = useState<ImportResult | null>(null)
   const [epgResult, setEpgResult] = useState<ImportResult | null>(null)
+  const [selectedProviderId, setSelectedProviderId] = useState<number | null>(null)
+
+  const { data: providers = [] } = useQuery({
+    queryKey: ['providers'],
+    queryFn: () => providersApi.getAll(),
+  })
 
   const clearChannels = useMutation({
     mutationFn: () => channelsApi.deleteAll(),
@@ -64,10 +72,11 @@ function ImportsTab() {
   })
 
   const importM3UFile = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({ file, providerId }: { file: File; providerId: number | null }) => {
       const form = new FormData()
       form.append('file', file)
-      const res = await fetch('/api/admin/channels/import', {
+      const url = providerId ? `/api/admin/channels/import?providerId=${providerId}` : '/api/admin/channels/import'
+      const res = await fetch(url, {
         method: 'POST',
         headers: authHeaders(),
         body: form,
@@ -79,11 +88,11 @@ function ImportsTab() {
   })
 
   const importM3UUrl = useMutation({
-    mutationFn: async (url: string) => {
+    mutationFn: async ({ url, providerId }: { url: string; providerId: number | null }) => {
       const res = await fetch('/api/admin/channels/import-url', {
         method: 'POST',
         headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, providerId }),
       })
       if (!res.ok) throw new Error(await res.text())
       return res.json() as Promise<ImportResult>
@@ -111,14 +120,31 @@ function ImportsTab() {
 
   return (
     <div className="space-y-6 max-w-2xl">
+      <div className="bg-gray-800 rounded-xl p-5">
+        <h2 className="text-white font-medium mb-3">Provider</h2>
+        <select
+          value={selectedProviderId ?? ''}
+          onChange={e => setSelectedProviderId(e.target.value ? Number(e.target.value) : null)}
+          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500 w-full max-w-xs"
+        >
+          <option value="">No provider</option>
+          {providers.map(p => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+        {providers.length === 0 && (
+          <p className="text-gray-500 text-xs mt-2">No providers yet — add one in the Providers tab.</p>
+        )}
+      </div>
+
       <ImportCard
         title="Import M3U Playlist"
         accept=".m3u,.m3u8"
         loading={m3uLoading}
         result={m3uResult}
         error={m3uError}
-        onFile={f => importM3UFile.mutate(f)}
-        onUrl={url => importM3UUrl.mutate(url)}
+        onFile={f => importM3UFile.mutate({ file: f, providerId: selectedProviderId })}
+        onUrl={url => importM3UUrl.mutate({ url, providerId: selectedProviderId })}
       />
       <ImportCard
         title="Import EPG (XMLTV)"
@@ -259,7 +285,171 @@ function ImportCard({ title, accept, loading, result, error, onFile, onUrl }: Im
   )
 }
 
-// ── Users tab ───────────────────────────────────��────────────────────────────
+// ── Providers tab ─────────────────────────────────────────────────────────────
+
+function ProvidersTab() {
+  const queryClient = useQueryClient()
+  const [showForm, setShowForm] = useState(false)
+  const [editing, setEditing] = useState<ProviderResponse | null>(null)
+
+  const { data: providers = [], isLoading } = useQuery({
+    queryKey: ['providers'],
+    queryFn: () => providersApi.getAll(),
+  })
+
+  const createProvider = useMutation({
+    mutationFn: (req: CreateProviderRequest) => providersApi.create(req),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['providers'] })
+      setShowForm(false)
+    },
+  })
+
+  const updateProvider = useMutation({
+    mutationFn: ({ id, req }: { id: number; req: CreateProviderRequest }) => providersApi.update(id, req),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['providers'] })
+      setEditing(null)
+    },
+  })
+
+  const deleteProvider = useMutation({
+    mutationFn: (id: number) => providersApi.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['providers'] }),
+  })
+
+  if (isLoading) return <div className="text-gray-400 text-sm">Loading…</div>
+
+  return (
+    <div className="max-w-2xl space-y-4">
+      {providers.length === 0 && !showForm && (
+        <p className="text-gray-400 text-sm">No providers yet.</p>
+      )}
+
+      {providers.map(p => (
+        editing?.id === p.id ? (
+          <ProviderForm
+            key={p.id}
+            initial={p}
+            loading={updateProvider.isPending}
+            error={updateProvider.error?.message}
+            onSubmit={req => updateProvider.mutate({ id: p.id, req })}
+            onCancel={() => setEditing(null)}
+          />
+        ) : (
+          <div key={p.id} className="bg-gray-800 rounded-xl p-5 flex items-start justify-between gap-4">
+            <div className="space-y-0.5 min-w-0">
+              <p className="text-white font-medium">{p.name}</p>
+              {p.baseUrl && <p className="text-gray-400 text-xs truncate">{p.baseUrl}</p>}
+              {p.username && <p className="text-gray-500 text-xs">User: {p.username}</p>}
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <button
+                onClick={() => setEditing(p)}
+                className="text-gray-400 hover:text-white text-xs transition-colors"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm(`Delete provider "${p.name}"? Channels will keep their data but lose the provider link.`))
+                    deleteProvider.mutate(p.id)
+                }}
+                className="text-gray-600 hover:text-red-400 text-xs transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        )
+      ))}
+
+      {showForm ? (
+        <ProviderForm
+          loading={createProvider.isPending}
+          error={createProvider.error?.message}
+          onSubmit={req => createProvider.mutate(req)}
+          onCancel={() => setShowForm(false)}
+        />
+      ) : (
+        <button
+          onClick={() => setShowForm(true)}
+          className="bg-violet-600 hover:bg-violet-500 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+        >
+          Add Provider
+        </button>
+      )}
+    </div>
+  )
+}
+
+interface ProviderFormProps {
+  initial?: ProviderResponse
+  loading: boolean
+  error?: string
+  onSubmit: (req: CreateProviderRequest) => void
+  onCancel: () => void
+}
+
+function ProviderForm({ initial, loading, error, onSubmit, onCancel }: ProviderFormProps) {
+  const [name, setName] = useState(initial?.name ?? '')
+  const [baseUrl, setBaseUrl] = useState(initial?.baseUrl ?? '')
+  const [username, setUsername] = useState(initial?.username ?? '')
+  const [password, setPassword] = useState(initial?.password ?? '')
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    onSubmit({
+      name,
+      baseUrl: baseUrl || undefined,
+      username: username || undefined,
+      password: password || undefined,
+    })
+  }
+
+  const inputCls = 'bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 w-full'
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-gray-800 rounded-xl p-5 space-y-3">
+      <h2 className="text-white font-medium">{initial ? 'Edit Provider' : 'New Provider'}</h2>
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Name *</label>
+        <input value={name} onChange={e => setName(e.target.value)} required placeholder="My IPTV Provider" className={inputCls} />
+      </div>
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Base URL</label>
+        <input value={baseUrl} onChange={e => setBaseUrl(e.target.value)} placeholder="http://server:8080" className={inputCls} />
+      </div>
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Username</label>
+        <input value={username} onChange={e => setUsername(e.target.value)} placeholder="username" className={inputCls} />
+      </div>
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Password</label>
+        <input value={password} onChange={e => setPassword(e.target.value)} placeholder="password" className={inputCls} />
+      </div>
+      {error && <p className="text-red-400 text-sm">{error}</p>}
+      <div className="flex gap-2 pt-1">
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+        >
+          {loading ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  )
+}
+
+// ── Users tab ─────────────────────────────────────────────────────────────────
 
 function UsersTab() {
   const { user: currentUser } = useAuth()

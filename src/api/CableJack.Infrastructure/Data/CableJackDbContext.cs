@@ -14,6 +14,7 @@ namespace CableJack.Infrastructure.Data
         public DbSet<Programme> Programmes { get; set; }
         public DbSet<UserFavorite> UserFavorites { get; set; }
         public DbSet<WatchHistory> WatchHistory { get; set; }
+        public DbSet<Provider> Providers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -24,6 +25,12 @@ namespace CableJack.Infrastructure.Data
                 .WithMany(c => c.Channels)
                 .HasForeignKey(c => c.CategoryId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Channel>()
+                .HasOne(c => c.Provider)
+                .WithMany(p => p.Channels)
+                .HasForeignKey(c => c.ProviderId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Stream>()
                 .HasOne(s => s.Channel)

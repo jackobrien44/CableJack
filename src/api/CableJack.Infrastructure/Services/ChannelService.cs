@@ -11,7 +11,7 @@ namespace CableJack.Infrastructure.Services
     {
         public async Task<PagedResult<ChannelResponse>> GetChannelsAsync(PaginationParams pagination, int? categoryId = null, bool includeInactive = false, string? search = null)
         {
-            var query = db.Channels.Include(c => c.Category).AsQueryable();
+            var query = db.Channels.Include(c => c.Category).Include(c => c.Provider).AsQueryable();
 
             if (!includeInactive)
                 query = query.Where(c => c.IsActive);
@@ -32,6 +32,7 @@ namespace CableJack.Infrastructure.Services
         {
             return await db.Channels
                 .Include(c => c.Category)
+                .Include(c => c.Provider)
                 .Where(c => c.Id == id)
                 .Select(c => ToResponse(c))
                 .FirstOrDefaultAsync();
@@ -63,6 +64,7 @@ namespace CableJack.Infrastructure.Services
         {
             var channel = await db.Channels
                 .Include(c => c.Category)
+                .Include(c => c.Provider)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (channel is null) return null;
@@ -111,6 +113,8 @@ namespace CableJack.Infrastructure.Services
             LogoUrl = c.LogoUrl,
             CategoryId = c.CategoryId,
             CategoryName = c.Category.Name,
+            ProviderId = c.ProviderId,
+            ProviderName = c.Provider?.Name,
             IsActive = c.IsActive,
             SortOrder = c.SortOrder,
         };

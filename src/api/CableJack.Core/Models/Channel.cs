@@ -12,7 +12,10 @@
         public required bool IsActive { get; set; }
         public required int SortOrder { get; set; }
 
+        public int? ProviderId { get; set; }
+
         public Category Category { get; set; } = null!;
+        public Provider? Provider { get; set; }
         public ICollection<Stream> Streams { get; set; } = [];
         public ICollection<Programme> Programmes { get; set; } = [];
         public ICollection<UserFavorite> Favorites { get; set; } = [];

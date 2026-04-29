@@ -30,6 +30,14 @@ export interface CategoryResponse {
   sortOrder: number
 }
 
+export interface ProviderResponse {
+  id: number
+  name: string
+  baseUrl: string | null
+  username: string | null
+  password: string | null
+}
+
 export interface ChannelResponse {
   id: number
   name: string
@@ -39,6 +47,8 @@ export interface ChannelResponse {
   logoUrl: string | null
   categoryId: number
   categoryName: string
+  providerId: number | null
+  providerName: string | null
   isActive: boolean
   sortOrder: number
 }

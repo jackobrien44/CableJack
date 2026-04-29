@@ -52,13 +52,13 @@ namespace CableJack.Api.Controllers
         }
 
         [HttpPost("channels/import")]
-        public async Task<ActionResult<ImportResult>> ImportM3U(IFormFile file)
+        public async Task<ActionResult<ImportResult>> ImportM3U(IFormFile file, [FromQuery] int? providerId)
         {
             if (file.Length == 0)
                 return BadRequest(new { message = "File is empty." });
 
             using var stream = file.OpenReadStream();
-            var result = await importService.ImportM3UAsync(stream);
+            var result = await importService.ImportM3UAsync(stream, providerId);
             return Ok(result);
         }
 
@@ -73,7 +73,7 @@ namespace CableJack.Api.Controllers
                 return BadRequest(new { message = $"Failed to fetch URL: {(int)response.StatusCode} {response.ReasonPhrase}" });
 
             using var stream = await response.Content.ReadAsStreamAsync();
-            var result = await importService.ImportM3UAsync(stream);
+            var result = await importService.ImportM3UAsync(stream, request.ProviderId);
             return Ok(result);
         }
     }
@@ -84,4 +84,5 @@ public sealed class ImportUrlRequest
     [Required]
     [Url]
     public required string Url { get; set; }
+    public int? ProviderId { get; set; }
 }

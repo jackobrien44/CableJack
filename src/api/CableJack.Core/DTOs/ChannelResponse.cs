@@ -10,6 +10,8 @@ namespace CableJack.Core.DTOs
         public string? LogoUrl { get; set; }
         public required int CategoryId { get; set; }
         public required string CategoryName { get; set; }
+        public int? ProviderId { get; set; }
+        public string? ProviderName { get; set; }
         public required bool IsActive { get; set; }
         public required int SortOrder { get; set; }
     }

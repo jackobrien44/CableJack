@@ -26,6 +26,7 @@ public static class ServiceExtensions
         services.AddHostedService<TokenCleanupService>();
         services.AddScoped<IImportService, ImportService>();
         services.AddScoped<IEpgService, EpgService>();
+        services.AddScoped<IProviderService, ProviderService>();
 
         return services;
     }
