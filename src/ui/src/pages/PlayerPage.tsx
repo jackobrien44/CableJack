@@ -55,9 +55,9 @@ export default function PlayerPage() {
 
     if (Hls.isSupported()) {
       const hls = new Hls({
-        // Retry manifest load a few times while ffmpeg buffers up the first segments
         manifestLoadingMaxRetry: 6,
         manifestLoadingRetryDelay: 1000,
+        liveDurationInfinity: true,
       })
       hlsRef.current = hls
       hls.loadSource(url)
