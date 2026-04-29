@@ -1,10 +1,12 @@
 using System.Text;
+using CableJack.Core.Enums;
 using CableJack.Core.Interfaces;
 using CableJack.Core.Services;
 using CableJack.Infrastructure.BackgroundServices;
 using CableJack.Infrastructure.Data;
 using CableJack.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -72,5 +74,52 @@ public static class ServiceExtensions
         services.AddAuthorization();
 
         return services;
+    }
+
+    public static IServiceCollection ConfigureOpenApi(this IServiceCollection services)
+    {
+        services.AddOpenApiDocument(config =>
+        {
+            config.Title = "CableJack API";
+            config.AddSecurity("Bearer", new NSwag.OpenApiSecurityScheme
+            {
+                Type = NSwag.OpenApiSecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                Description = "Paste your JWT access token here.",
+            });
+            config.OperationProcessors.Add(new NSwag.Generation.Processors.Security.OperationSecurityScopeProcessor("Bearer"));
+        });
+
+        return services;
+    }
+
+    public static WebApplication UseStreamStaticFiles(this WebApplication app)
+    {
+        var provider = new FileExtensionContentTypeProvider();
+        provider.Mappings[".m3u8"] = "application/vnd.apple.mpegurl";
+        provider.Mappings[".ts"] = "video/mp2t";
+        app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = provider });
+
+        return app;
+    }
+
+    public static async Task RunStartupTasksAsync(this WebApplication app)
+    {
+        var streamsDir = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "streams");
+        Directory.CreateDirectory(streamsDir);
+        foreach (var dir in Directory.GetDirectories(streamsDir))
+        {
+            try { Directory.Delete(dir, recursive: true); }
+            catch (Exception ex) { app.Logger.LogWarning(ex, "Failed to delete orphaned stream directory {Dir}", dir); }
+        }
+
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CableJackDbContext>();
+        var reset = await db.Streams
+            .Where(s => s.Status == StreamStatus.Starting || s.Status == StreamStatus.Running)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, StreamStatus.Error));
+        if (reset > 0)
+            app.Logger.LogInformation("Reset {Count} orphaned stream(s) to Error on startup", reset);
     }
 }   
