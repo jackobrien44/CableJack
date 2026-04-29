@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import Hls from 'hls.js'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { MediaPlayer, MediaProvider } from '@vidstack/react'
+import { DefaultVideoLayout, defaultLayoutIcons } from '@vidstack/react/player/layouts/default'
+import '@vidstack/react/player/styles/default/theme.css'
+import '@vidstack/react/player/styles/default/layouts/video.css'
 import { streamsApi } from '../api/streams'
 import { epgApi } from '../api/epg'
 import type { ProgrammeResponse } from '../types/api'
@@ -10,24 +13,19 @@ export default function PlayerPage() {
   const { id } = useParams<{ id: string }>()
   const channelId = Number(id)
   const navigate = useNavigate()
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const hlsRef = useRef<Hls | null>(null)
   const startedRef = useRef(false)
   const [streamId, setStreamId] = useState<number | null>(null)
   const [startError, setStartError] = useState<string | null>(null)
-  const [hlsError, setHlsError] = useState<string | null>(null)
   const ffmpegPaused = useRef(false)
-  const [controlsVisible, setControlsVisible] = useState(true)
-  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showSidebar, setShowSidebar] = useState(true)
 
-  useEffect(() => {
-    if (startedRef.current) return
+  // Start stream once on mount
+  if (!startedRef.current) {
     startedRef.current = true
     streamsApi.start(channelId)
       .then(s => setStreamId(s.id))
       .catch(() => setStartError('Failed to start stream.'))
-  }, [channelId])
+  }
 
   const { data: stream } = useQuery({
     queryKey: ['stream', streamId],
@@ -63,117 +61,82 @@ export default function PlayerPage() {
   const pause = useMutation({ mutationFn: () => streamsApi.pause(streamId!) })
   const resume = useMutation({ mutationFn: () => streamsApi.resume(streamId!) })
 
-  useEffect(() => {
-    const url = stream?.url
-    const video = videoRef.current
-    if (!url || !video || stream?.status !== 'Running') return
-
-    setHlsError(null)
-
-    if (Hls.isSupported()) {
-      const hls = new Hls({
-        manifestLoadingMaxRetry: 6,
-        manifestLoadingRetryDelay: 1000,
-        liveDurationInfinity: true,
-      })
-      hlsRef.current = hls
-      hls.loadSource(url)
-      hls.attachMedia(video)
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setHlsError(null)
-        video.play().catch(() => {})
-      })
-      hls.on(Hls.Events.ERROR, (_, data) => {
-        if (!data.fatal) return
-        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-          hls.recoverMediaError()
-        } else {
-          setHlsError('Failed to load stream. The source may be unavailable.')
-        }
-      })
-      function onPause() {
-        ffmpegPaused.current = true
-        pause.mutate()
-      }
-      function onPlay() {
-        if (!ffmpegPaused.current) return
-        ffmpegPaused.current = false
-        resume.mutate()
-      }
-      video.addEventListener('pause', onPause)
-      video.addEventListener('play', onPlay)
-
-      return () => {
-        hls.destroy()
-        hlsRef.current = null
-        video.removeEventListener('pause', onPause)
-        video.removeEventListener('play', onPlay)
-      }
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = url
-      video.play().catch(() => {})
-    }
-  }, [stream?.url, stream?.status])
-
-  function handleVideoMouseMove() {
-    setControlsVisible(true)
-    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current)
-    controlsTimerRef.current = setTimeout(() => setControlsVisible(false), 3000)
-  }
-
   const upcomingList = upcoming?.filter(p => p.id !== nowPlaying?.id) ?? []
-
-  const overlayBtn = `w-9 h-9 flex items-center justify-center rounded-sm bg-black/60 hover:bg-black/90 text-white leading-none backdrop-blur-sm transition-opacity ${controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`
+  const isRunning = stream?.status === 'Running' && !!stream?.url
+  const isStarting = (startError == null && streamId == null) || stream?.status === 'Starting'
 
   return (
     <div className="flex bg-gray-950 h-svh overflow-hidden">
 
-      {/* Video column — fills remaining space */}
-      <div className="flex-1 h-svh relative bg-black"
-        onMouseMove={handleVideoMouseMove}
-        onMouseLeave={() => setControlsVisible(false)}
-      >
-          {((startError == null && streamId == null) || stream?.status === 'Starting') && (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm pointer-events-none">
-              Starting stream…
-            </div>
-          )}
-          {stream?.status === 'Error' && (
-            <div className="absolute inset-0 flex items-center justify-center text-red-400 text-sm pointer-events-none">
-              Stream error. The source may be unavailable.
-            </div>
-          )}
-          {startError && (
-            <div className="absolute inset-0 flex items-center justify-center text-red-400 text-sm pointer-events-none">
-              {startError}
-            </div>
-          )}
-          {hlsError && (
-            <div className="absolute inset-0 flex items-center justify-center text-red-400 text-sm px-8 text-center pointer-events-none">
-              {hlsError}
-            </div>
-          )}
+      {/* Player column */}
+      <div className="flex-1 h-svh relative bg-black">
 
-          <video ref={videoRef} className="w-full h-full" controls playsInline />
+        {/* Status overlays */}
+        {isStarting && (
+          <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm pointer-events-none z-10">
+            Starting stream…
+          </div>
+        )}
+        {stream?.status === 'Error' && (
+          <div className="absolute inset-0 flex items-center justify-center text-red-400 text-sm pointer-events-none z-10">
+            Stream error. The source may be unavailable.
+          </div>
+        )}
+        {startError && (
+          <div className="absolute inset-0 flex items-center justify-center text-red-400 text-sm pointer-events-none z-10">
+            {startError}
+          </div>
+        )}
 
-          {/* Stop button — top left */}
-          <button
-            onClick={() => stop.mutate()}
-            disabled={stop.isPending}
-            className={`absolute top-3 left-3 text-xl disabled:opacity-40 ${overlayBtn}`}
-            title="Stop and go back"
+        {/* Vidstack player */}
+        {isRunning && (
+          <MediaPlayer
+            src={{ src: stream.url, type: 'application/x-mpegurl' }}
+            autoPlay
+            className="w-full h-full"
+            onPause={() => { ffmpegPaused.current = true; pause.mutate() }}
+            onPlay={() => {
+              if (!ffmpegPaused.current) return
+              ffmpegPaused.current = false
+              resume.mutate()
+            }}
           >
-            ✕
-          </button>
-
-          {/* Toggle sidebar — top right */}
-          <button
-            onClick={() => setShowSidebar(v => !v)}
-            className={`absolute top-3 right-3 text-xl ${overlayBtn}`}
-            title={showSidebar ? 'Hide info' : 'Show info'}
-          >
-            {showSidebar ? '›' : '‹'}
-          </button>
+            <MediaProvider />
+            <DefaultVideoLayout
+              icons={defaultLayoutIcons}
+              slots={{
+                beforePlayButton: (
+                  <button
+                    onClick={() => stop.mutate()}
+                    disabled={stop.isPending}
+                    className="vds-button"
+                    title="Stop and go back"
+                    aria-label="Stop"
+                  >
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                  </button>
+                ),
+                afterFullscreenButton: (
+                  <button
+                    onClick={() => setShowSidebar(v => !v)}
+                    className="vds-button"
+                    title={showSidebar ? 'Hide info' : 'Show info'}
+                    aria-label="Toggle sidebar"
+                  >
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                      {showSidebar
+                        ? <path d="M3 18h13v-2H3v2zm0-5h10v-2H3v2zm0-7v2h13V6H3zm18 9.59L17.42 12 21 8.41 19.59 7l-5 5 5 5L21 15.59z"/>
+                        : <path d="M3 18h13v-2H3v2zm0-5h10v-2H3v2zm0-7v2h13V6H3zm18 9.59L17.42 12 21 8.41 19.59 7l-5 5 5 5L21 15.59z"/>
+                      }
+                    </svg>
+                  </button>
+                ),
+              }}
+            />
+          </MediaPlayer>
+        )}
       </div>
 
       {/* Sidebar */}
