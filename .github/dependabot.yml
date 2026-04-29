@@ -1,0 +1,13 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /src/api/CableJack.Api
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: /src/ui
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
