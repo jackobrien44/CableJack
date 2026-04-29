@@ -116,9 +116,15 @@ namespace CableJack.Infrastructure.Services
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
                 ExpiresAt = expiresAt,
-                UserId = user.Id,
-                Username = user.Username,
-                Role = user.Role,
+                User = new UserResponse
+                {
+                    Id = user.Id,
+                    Username = user.Username,
+                    IsActive = user.IsActive,
+                    Role = user.Role,
+                    CreatedAt = user.CreatedAt,
+                    ModifiedAt = user.ModifiedAt,
+                },
             };
         }
 
