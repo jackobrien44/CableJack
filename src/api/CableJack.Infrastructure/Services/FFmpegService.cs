@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CableJack.Infrastructure.Services
 {
-    public sealed class FFmpegService : IFFmpegService
+    public sealed class FFmpegService : IFFmpegService, IDisposable
     {
         private readonly ConcurrentDictionary<int, Process> _processes = new();
         private readonly IServiceScopeFactory _scopeFactory;
@@ -120,6 +120,21 @@ namespace CableJack.Infrastructure.Services
             StartAsync(streamId, sourceUrl);
 
         public bool IsRunning(int streamId) => _processes.ContainsKey(streamId);
+
+        public void Dispose()
+        {
+            foreach (var (_, process) in _processes)
+            {
+                try
+                {
+                    if (!process.HasExited)
+                        process.Kill(entireProcessTree: true);
+                    process.Dispose();
+                }
+                catch { /* best effort */ }
+            }
+            _processes.Clear();
+        }
 
         private async Task OnProcessExitedAsync(int streamId)
         {
