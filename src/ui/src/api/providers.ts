@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { ProviderResponse } from '../types/api'
+import type { ImportResult, ProviderResponse } from '../types/api'
 
 export interface CreateProviderRequest {
   name: string
@@ -21,4 +21,5 @@ export const providersApi = {
   create: (body: CreateProviderRequest) => api.post<ProviderResponse>('/providers', body),
   update: (id: number, body: UpdateProviderRequest) => api.put<ProviderResponse>(`/providers/${id}`, body),
   delete: (id: number) => api.delete<void>(`/providers/${id}`),
+  import: (id: number) => api.post<ImportResult>(`/providers/${id}/import`),
 }

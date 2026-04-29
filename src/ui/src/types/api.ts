@@ -83,6 +83,7 @@ export interface WatchHistoryResponse {
 export interface ImportResult {
   channelsCreated: number
   channelsUpdated: number
+  channelsSkipped: number
   categoriesCreated: number
   errors: string[]
 }

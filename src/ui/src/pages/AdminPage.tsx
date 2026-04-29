@@ -267,7 +267,7 @@ function ImportCard({ title, accept, loading, result, error, onFile, onUrl }: Im
         <div className="mt-3 text-sm space-y-1">
           <p className="text-green-400">Import complete</p>
           <p className="text-gray-400">
-            Channels created: {result.channelsCreated} · updated: {result.channelsUpdated} · categories: {result.categoriesCreated}
+            Channels created: {result.channelsCreated} · updated: {result.channelsUpdated}{result.channelsSkipped > 0 && ` · skipped: ${result.channelsSkipped}`} · categories: {result.categoriesCreated}
           </p>
           {result.errors.length > 0 && (
             <details className="mt-2">
@@ -291,6 +291,7 @@ function ProvidersTab() {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<ProviderResponse | null>(null)
+  const [importResults, setImportResults] = useState<Record<number, ImportResult>>({})
 
   const { data: providers = [], isLoading } = useQuery({
     queryKey: ['providers'],
@@ -318,6 +319,14 @@ function ProvidersTab() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['providers'] }),
   })
 
+  const importProvider = useMutation({
+    mutationFn: (id: number) => providersApi.import(id),
+    onSuccess: (result, id) => {
+      queryClient.invalidateQueries({ queryKey: ['channels'] })
+      setImportResults(prev => ({ ...prev, [id]: result }))
+    },
+  })
+
   if (isLoading) return <div className="text-gray-400 text-sm">Loading…</div>
 
   return (
@@ -337,29 +346,53 @@ function ProvidersTab() {
             onCancel={() => setEditing(null)}
           />
         ) : (
-          <div key={p.id} className="bg-gray-800 rounded-xl p-5 flex items-start justify-between gap-4">
-            <div className="space-y-0.5 min-w-0">
-              <p className="text-white font-medium">{p.name}</p>
-              {p.baseUrl && <p className="text-gray-400 text-xs truncate">{p.baseUrl}</p>}
-              {p.username && <p className="text-gray-500 text-xs">User: {p.username}</p>}
+          <div key={p.id} className="bg-gray-800 rounded-xl p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-0.5 min-w-0">
+                <p className="text-white font-medium">{p.name}</p>
+                {p.baseUrl && <p className="text-gray-400 text-xs truncate">{p.baseUrl}</p>}
+                {p.username && <p className="text-gray-500 text-xs">User: {p.username}</p>}
+              </div>
+              <div className="flex gap-3 shrink-0 items-center">
+                {p.baseUrl && p.username && p.password && (
+                  <button
+                    onClick={() => importProvider.mutate(p.id)}
+                    disabled={importProvider.isPending && importProvider.variables === p.id}
+                    className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    {importProvider.isPending && importProvider.variables === p.id ? 'Importing…' : 'Import'}
+                  </button>
+                )}
+                <button
+                  onClick={() => setEditing(p)}
+                  className="text-gray-400 hover:text-white text-xs transition-colors"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm(`Delete provider "${p.name}"? Channels will keep their data but lose the provider link.`))
+                      deleteProvider.mutate(p.id)
+                  }}
+                  className="text-gray-600 hover:text-red-400 text-xs transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2 shrink-0">
-              <button
-                onClick={() => setEditing(p)}
-                className="text-gray-400 hover:text-white text-xs transition-colors"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => {
-                  if (confirm(`Delete provider "${p.name}"? Channels will keep their data but lose the provider link.`))
-                    deleteProvider.mutate(p.id)
-                }}
-                className="text-gray-600 hover:text-red-400 text-xs transition-colors"
-              >
-                Delete
-              </button>
-            </div>
+            {importProvider.isError && importProvider.variables === p.id && (
+              <p className="text-red-400 text-xs mt-2">{importProvider.error?.message}</p>
+            )}
+            {importResults[p.id] && (() => {
+              const r = importResults[p.id]
+              return (
+                <p className="text-gray-400 text-xs mt-2">
+                  Last import: <span className="text-green-400">{r.channelsCreated} added</span>
+                  {r.channelsSkipped > 0 && <span> · {r.channelsSkipped} skipped</span>}
+                  {r.categoriesCreated > 0 && <span> · {r.categoriesCreated} new categories</span>}
+                </p>
+              )
+            })()}
           </div>
         )
       ))}

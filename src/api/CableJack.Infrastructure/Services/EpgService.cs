@@ -50,6 +50,7 @@ namespace CableJack.Infrastructure.Services
             {
                 ChannelsCreated = 0,
                 ChannelsUpdated = 0,
+                ChannelsSkipped = 0,
                 CategoriesCreated = 0,
                 Errors = [],
             };

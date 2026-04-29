@@ -10,13 +10,14 @@ namespace CableJack.Infrastructure.Services
 {
     public sealed partial class ImportService(CableJackDbContext db) : IImportService
     {
-        public async Task<ImportResult> ImportM3UAsync(Stream stream, int? providerId = null)
+        public async Task<ImportResult> ImportM3UAsync(Stream stream, int? providerId = null, bool skipExisting = false)
         {
             var lines = await ReadLinesAsync(stream);
             var result = new ImportResult
             {
                 ChannelsCreated = 0,
                 ChannelsUpdated = 0,
+                ChannelsSkipped = 0,
                 CategoriesCreated = 0,
                 Errors = [],
             };
@@ -66,6 +67,11 @@ namespace CableJack.Infrastructure.Services
                 // Create or update channel matched by SourceUrl
                 if (channels.TryGetValue(url, out var existing))
                 {
+                    if (skipExisting)
+                    {
+                        result.ChannelsSkipped++;
+                        continue;
+                    }
                     existing.Name = name;
                     existing.TvgId = tvgId;
                     existing.LogoUrl = logoUrl;

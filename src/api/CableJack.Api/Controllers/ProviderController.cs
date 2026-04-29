@@ -7,7 +7,7 @@ namespace CableJack.Api.Controllers
 {
     [ApiController]
     [Route("api/providers")]
-    public class ProviderController(IProviderService providerService) : ControllerBase
+    public class ProviderController(IProviderService providerService, IImportService importService) : ControllerBase
     {
         [HttpGet]
         [Authorize]
@@ -46,6 +46,33 @@ namespace CableJack.Api.Controllers
         {
             var deleted = await providerService.DeleteAsync(id);
             return deleted ? NoContent() : NotFound();
+        }
+
+        [HttpPost("{id:int}/import")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<ActionResult<ImportResult>> Import(int id)
+        {
+            var provider = await providerService.GetByIdAsync(id);
+            if (provider is null) return NotFound();
+
+            if (string.IsNullOrWhiteSpace(provider.BaseUrl) ||
+                string.IsNullOrWhiteSpace(provider.Username) ||
+                string.IsNullOrWhiteSpace(provider.Password))
+                return BadRequest(new { message = "Provider must have a base URL, username, and password to auto-import." });
+
+            var m3uUrl = $"{provider.BaseUrl.TrimEnd('/')}/get.php?username={Uri.EscapeDataString(provider.Username)}&password={Uri.EscapeDataString(provider.Password)}&type=m3u_plus&output=ts";
+
+            using var http = new HttpClient();
+            http.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+            http.Timeout = TimeSpan.FromSeconds(60);
+
+            using var response = await http.GetAsync(m3uUrl, HttpCompletionOption.ResponseHeadersRead);
+            if (!response.IsSuccessStatusCode)
+                return BadRequest(new { message = $"Failed to fetch playlist: {(int)response.StatusCode} {response.ReasonPhrase}" });
+
+            using var stream = await response.Content.ReadAsStreamAsync();
+            var result = await importService.ImportM3UAsync(stream, id, skipExisting: true);
+            return Ok(result);
         }
     }
 }
