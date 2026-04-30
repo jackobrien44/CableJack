@@ -12,15 +12,8 @@ namespace CableJack.Api.Controllers
     [ApiController]
     [Route("api/admin")]
     [Authorize(Roles = "Administrator")]
-    public class AdminController(
-        IUserService userService,
-        IStreamService streamService,
-        IChannelService channelService,
-        IImportService importService,
-        ISettingsService settingsService,
-        IDashboardService dashboardService,
-        IAuditService audit,
-        CableJackDbContext db) : ControllerBase
+    public class AdminController(IUserService userService, IStreamService streamService, IChannelService channelService, IImportService importService, ISettingsService settingsService, IDashboardService dashboardService,
+        IAuditService audit, CableJackDbContext db) : ControllerBase
     {
         [HttpGet("settings")]
         public async Task<ActionResult<SystemSettingsDto>> GetSettings()
