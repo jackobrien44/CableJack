@@ -892,15 +892,6 @@ function DashboardTab() {
     return 'text-gray-400'
   }
 
-  const fmtDuration = (startedAt: string, stoppedAt: string | null) => {
-    const ms = (stoppedAt ? new Date(stoppedAt) : new Date()).getTime() - new Date(startedAt).getTime()
-    const secs = Math.floor(ms / 1000)
-    if (secs < 60) return `${secs}s`
-    const mins = Math.floor(secs / 60)
-    if (mins < 60) return `${mins}m ${secs % 60}s`
-    return `${Math.floor(mins / 60)}h ${mins % 60}m`
-  }
-
   const fmtMinutes = (mins: number) => mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`
   const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString() : '—'
 
@@ -1098,12 +1089,12 @@ function Empty({ children }: { children: React.ReactNode }) {
 }
 
 function LiveDuration({ startedAt }: { startedAt: string }) {
-  const [, setTick] = useState(0)
+  const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 1000)
+    const id = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(id)
   }, [])
-  const ms = Date.now() - new Date(startedAt).getTime()
+  const ms = now - new Date(startedAt).getTime()
   const secs = Math.floor(ms / 1000)
   if (secs < 60) return <>{secs}s</>
   const mins = Math.floor(secs / 60)
