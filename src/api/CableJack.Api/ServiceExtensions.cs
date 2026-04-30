@@ -2,10 +2,10 @@ using System.Text;
 using System.Threading.RateLimiting;
 using CableJack.Core.Enums;
 using CableJack.Core.Interfaces;
+using CableJack.Infrastructure.Services;
 using CableJack.Core.Services;
 using CableJack.Infrastructure.BackgroundServices;
 using CableJack.Infrastructure.Data;
-using CableJack.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +32,8 @@ public static class ServiceExtensions
         services.AddScoped<IProviderService, ProviderService>();
         services.AddScoped<ISettingsService, SettingsService>();
         services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IAuditService, AuditService>();
+        services.AddHttpContextAccessor();
 
         services.AddRateLimiter(options =>
         {

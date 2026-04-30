@@ -1,8 +1,10 @@
-﻿using CableJack.Core.DTOs;
+using CableJack.Core.DTOs;
 using CableJack.Core.Interfaces;
 using CableJack.Core.Services;
+using CableJack.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
 namespace CableJack.Api.Controllers
@@ -10,7 +12,15 @@ namespace CableJack.Api.Controllers
     [ApiController]
     [Route("api/admin")]
     [Authorize(Roles = "Administrator")]
-    public class AdminController(IUserService userService, IStreamService streamService, IChannelService channelService, IImportService importService, ISettingsService settingsService, IDashboardService dashboardService) : ControllerBase
+    public class AdminController(
+        IUserService userService,
+        IStreamService streamService,
+        IChannelService channelService,
+        IImportService importService,
+        ISettingsService settingsService,
+        IDashboardService dashboardService,
+        IAuditService audit,
+        CableJackDbContext db) : ControllerBase
     {
         [HttpGet("settings")]
         public async Task<ActionResult<SystemSettingsDto>> GetSettings()
@@ -23,6 +33,7 @@ namespace CableJack.Api.Controllers
         public async Task<ActionResult<SystemSettingsDto>> UpdateSettings([FromBody] SystemSettingsDto request)
         {
             var settings = await settingsService.UpdateSettingsAsync(request);
+            await audit.LogAsync("SettingsUpdated", "Updated system settings");
             return Ok(settings);
         }
 
@@ -32,6 +43,7 @@ namespace CableJack.Api.Controllers
             try
             {
                 var user = await userService.CreateUserAsync(request);
+                await audit.LogAsync("UserCreated", $"Created user: {user.Username}", "User", user.Id);
                 return CreatedAtAction(nameof(GetUser), new { userId = user.Id }, user);
             }
             catch (InvalidOperationException ex)
@@ -57,21 +69,27 @@ namespace CableJack.Api.Controllers
         public async Task<ActionResult<UserResponse>> UpdateUser(int userId, [FromBody] UpdateUserRequest request)
         {
             var user = await userService.UpdateUserAsync(userId, request);
-            return user is null ? NotFound() : Ok(user);
+            if (user is null) return NotFound();
+            await audit.LogAsync("UserUpdated", $"Updated user: {user.Username}", "User", userId);
+            return Ok(user);
         }
 
         [HttpPost("users/{userId:int}/reset-password")]
         public async Task<IActionResult> ResetUserPassword(int userId, [FromBody] AdminResetPasswordRequest request)
         {
             var result = await userService.AdminResetPasswordAsync(userId, request);
-            return result ? NoContent() : NotFound();
+            if (!result) return NotFound();
+            await audit.LogAsync("PasswordReset", $"Admin reset password for user #{userId}", "User", userId);
+            return NoContent();
         }
 
         [HttpDelete("users/{userId:int}")]
         public async Task<IActionResult> DeleteUser(int userId)
         {
             var deleted = await userService.DeleteUserAsync(userId);
-            return deleted ? NoContent() : NotFound();
+            if (!deleted) return NotFound();
+            await audit.LogAsync("UserDeleted", $"Deleted user #{userId}", "User", userId);
+            return NoContent();
         }
 
         [HttpGet("dashboard")]
@@ -100,6 +118,47 @@ namespace CableJack.Api.Controllers
             return Ok(await dashboardService.GetAdminHistoryAsync(pagination, userId, search));
         }
 
+        [HttpGet("audit")]
+        public async Task<ActionResult<PagedResult<AuditLogDto>>> GetAuditLogs([FromQuery] PaginationParams pagination, [FromQuery] string? search, [FromQuery] string? action)
+        {
+            var query = db.AuditLogs.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(action))
+                query = query.Where(a => a.Action == action);
+
+            if (!string.IsNullOrWhiteSpace(search))
+                query = query.Where(a =>
+                    (a.Description != null && a.Description.Contains(search)) ||
+                    (a.ActorUsername != null && a.ActorUsername.Contains(search)));
+
+            var total = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(a => a.Timestamp)
+                .Skip((pagination.Page - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
+                .Select(a => new AuditLogDto
+                {
+                    Id = a.Id,
+                    Timestamp = a.Timestamp,
+                    Action = a.Action,
+                    ActorId = a.ActorId,
+                    ActorUsername = a.ActorUsername,
+                    TargetType = a.TargetType,
+                    TargetId = a.TargetId,
+                    Description = a.Description,
+                    IpAddress = a.IpAddress,
+                })
+                .ToListAsync();
+
+            return Ok(new PagedResult<AuditLogDto>
+            {
+                Items = items,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
+                TotalCount = total,
+            });
+        }
+
         [HttpGet("streams")]
         public async Task<PagedResult<StreamResponse>> GetAllStreams([FromQuery] PaginationParams pagination)
         {
@@ -110,7 +169,9 @@ namespace CableJack.Api.Controllers
         public async Task<ActionResult<StreamResponse>> AdminStopStream(int id)
         {
             var stream = await streamService.AdminStopStreamAsync(id);
-            return stream is null ? NotFound() : Ok(stream);
+            if (stream is null) return NotFound();
+            await audit.LogAsync("StreamKilled", $"Admin killed stream #{id}", "Stream", id);
+            return Ok(stream);
         }
 
         [HttpGet("channels")]
@@ -127,6 +188,7 @@ namespace CableJack.Api.Controllers
 
             using var stream = file.OpenReadStream();
             var result = await importService.ImportM3UAsync(stream, providerId);
+            await audit.LogAsync("ImportCompleted", $"Imported {result.ChannelsCreated} channels from file upload");
             return Ok(result);
         }
 
@@ -142,6 +204,7 @@ namespace CableJack.Api.Controllers
 
             using var stream = await response.Content.ReadAsStreamAsync();
             var result = await importService.ImportM3UAsync(stream, request.ProviderId);
+            await audit.LogAsync("ImportCompleted", $"Imported {result.ChannelsCreated} channels from URL");
             return Ok(result);
         }
     }

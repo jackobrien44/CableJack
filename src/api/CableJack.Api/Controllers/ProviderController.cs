@@ -2,13 +2,12 @@ using CableJack.Core.DTOs;
 using CableJack.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Http;
 
 namespace CableJack.Api.Controllers
 {
     [ApiController]
     [Route("api/providers")]
-    public class ProviderController(IProviderService providerService, IImportService importService, IEpgService epgService) : ControllerBase
+    public class ProviderController(IProviderService providerService, IImportService importService, IEpgService epgService, IAuditService audit) : ControllerBase
     {
         [HttpGet]
         [Authorize]
@@ -30,6 +29,7 @@ namespace CableJack.Api.Controllers
         public async Task<ActionResult<ProviderResponse>> Create([FromBody] CreateProviderRequest request)
         {
             var provider = await providerService.CreateAsync(request);
+            await audit.LogAsync("ProviderCreated", $"Created provider: {provider.Name}", "Provider", provider.Id);
             return CreatedAtAction(nameof(GetById), new { id = provider.Id }, provider);
         }
 
@@ -38,7 +38,9 @@ namespace CableJack.Api.Controllers
         public async Task<ActionResult<ProviderResponse>> Update(int id, [FromBody] UpdateProviderRequest request)
         {
             var provider = await providerService.UpdateAsync(id, request);
-            return provider is null ? NotFound() : Ok(provider);
+            if (provider is null) return NotFound();
+            await audit.LogAsync("ProviderUpdated", $"Updated provider: {provider.Name}", "Provider", id);
+            return Ok(provider);
         }
 
         [HttpDelete("{id:int}")]
@@ -46,7 +48,9 @@ namespace CableJack.Api.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var deleted = await providerService.DeleteAsync(id);
-            return deleted ? NoContent() : NotFound();
+            if (!deleted) return NotFound();
+            await audit.LogAsync("ProviderDeleted", $"Deleted provider #{id}", "Provider", id);
+            return NoContent();
         }
 
         [HttpPost("{id:int}/import")]
@@ -73,6 +77,7 @@ namespace CableJack.Api.Controllers
 
             using var stream = await response.Content.ReadAsStreamAsync();
             var result = await importService.ImportM3UAsync(stream, id, skipExisting: true);
+            await audit.LogAsync("ImportCompleted", $"Imported {result.ChannelsCreated} channels from provider: {provider.Name}", "Provider", id);
             return Ok(result);
         }
 
@@ -100,6 +105,7 @@ namespace CableJack.Api.Controllers
 
             using var stream = await response.Content.ReadAsStreamAsync();
             var result = await epgService.ImportXmltvAsync(stream);
+            await audit.LogAsync("EpgImportCompleted", $"Imported EPG data from provider: {provider.Name}", "Provider", id);
             return Ok(result);
         }
     }

@@ -123,6 +123,18 @@ export interface UserStatsDto {
   totalWatchSeconds: number
 }
 
+export interface AuditLogDto {
+  id: number
+  timestamp: string
+  action: string
+  actorId: number | null
+  actorUsername: string | null
+  targetType: string | null
+  targetId: number | null
+  description: string | null
+  ipAddress: string | null
+}
+
 export interface SystemSettingsDto {
   registrationMode: 'Open' | 'InviteOnly' | 'Disabled'
   maxConcurrentStreams: number

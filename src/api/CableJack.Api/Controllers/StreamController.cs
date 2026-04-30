@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using CableJack.Core.DTOs;
 using CableJack.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +10,7 @@ namespace CableJack.Api.Controllers
     [ApiController]
     [Route("api/streams")]
     [Authorize]
-    public class StreamController(IStreamService streamService) : ControllerBase
+    public class StreamController(IStreamService streamService, IAuditService audit) : ControllerBase
     {
         [HttpGet]
         public async Task<ActionResult<List<StreamResponse>>> GetMyStreams()
@@ -38,6 +38,7 @@ namespace CableJack.Api.Controllers
             if (userId is null) return Unauthorized();
 
             var stream = await streamService.StartStreamAsync(request.ChannelId, userId.Value);
+            await audit.LogAsync("StreamStarted", $"Started stream for channel #{request.ChannelId}", "Stream", stream.Id);
             return CreatedAtAction(nameof(GetStream), new { id = stream.Id }, stream);
         }
 
@@ -48,7 +49,9 @@ namespace CableJack.Api.Controllers
             if (userId is null) return Unauthorized();
 
             var stream = await streamService.StopStreamAsync(id, userId.Value);
-            return stream is null ? NotFound() : Ok(stream);
+            if (stream is null) return NotFound();
+            await audit.LogAsync("StreamStopped", $"Stopped stream #{id}", "Stream", id);
+            return Ok(stream);
         }
 
         [HttpPut("{id:int}/pause")]
