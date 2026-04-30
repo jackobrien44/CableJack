@@ -96,6 +96,12 @@ export default function Layout() {
           )}
         </nav>
 
+        {import.meta.env.VITE_APP_VERSION && (
+          <div className="px-4 pb-2">
+            <p className="text-gray-700 text-xs">{import.meta.env.VITE_APP_VERSION}</p>
+          </div>
+        )}
+
         <div className="px-4 py-4 border-t border-gray-800 flex items-center justify-between gap-2">
           <p className="text-gray-300 text-sm font-medium truncate">{user?.username}</p>
           <button
