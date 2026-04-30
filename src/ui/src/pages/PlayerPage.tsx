@@ -68,6 +68,14 @@ export default function PlayerPage() {
     onSuccess: () => navigate(-1),
   })
 
+  const retry = useMutation({
+    mutationFn: async () => {
+      await streamsApi.stop(streamId!)
+      return streamsApi.start(channelId)
+    },
+    onSuccess: s => setStreamId(s.id),
+  })
+
   const pause = useMutation({ mutationFn: () => streamsApi.pause(streamId!) })
   const resume = useMutation({ mutationFn: () => streamsApi.resume(streamId!) })
 
@@ -78,6 +86,17 @@ export default function PlayerPage() {
   }, [])
 
   const upcomingList = upcoming?.filter(p => p.id !== nowPlaying?.id) ?? []
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (e.key === 'Escape') handleExit()
+      else if (e.key === 'i' || e.key === 'I') setShowSidebar(v => !v)
+      else if ((e.key === 'r' || e.key === 'R') && stream?.status === 'Error' && !retry.isPending) retry.mutate()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
   const isRunning = stream?.status === 'Running' && !!stream?.url
   const isStarting = (startError == null && streamId == null) || stream?.status === 'Starting'
 
@@ -111,13 +130,22 @@ export default function PlayerPage() {
         {stream?.status === 'Error' && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-10">
             <p className="text-red-400 text-sm pointer-events-none">Stream error. The source may be unavailable.</p>
-            <button
-              onClick={handleExit}
-              disabled={stop.isPending}
-              className="text-gray-500 hover:text-white text-xs px-3 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition-colors"
-            >
-              Go back
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => retry.mutate()}
+                disabled={retry.isPending}
+                className="text-white text-xs px-3 py-1.5 rounded-lg border border-violet-600 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition-colors"
+              >
+                {retry.isPending ? 'Retrying…' : 'Retry'}
+              </button>
+              <button
+                onClick={handleExit}
+                disabled={stop.isPending}
+                className="text-gray-500 hover:text-white text-xs px-3 py-1.5 rounded-lg border border-gray-700 hover:border-gray-500 transition-colors"
+              >
+                Go back
+              </button>
+            </div>
           </div>
         )}
         {startError && (

@@ -15,5 +15,6 @@ namespace CableJack.Core.Services
         Task<bool> AddFavoriteAsync(int userId, int channelId);
         Task<bool> RemoveFavoriteAsync(int userId, int channelId);
         Task<PagedResult<WatchHistoryResponse>> GetWatchHistoryAsync(int userId, PaginationParams pagination);
+        Task<UserStatsDto> GetStatsAsync(int userId);
     }
 }

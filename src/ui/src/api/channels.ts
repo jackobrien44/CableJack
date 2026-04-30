@@ -9,6 +9,28 @@ export interface GetChannelsParams {
   search?: string
 }
 
+export interface CreateChannelRequest {
+  name: string
+  sourceUrl: string
+  categoryId: number
+  tvgId?: string
+  logoUrl?: string
+  description?: string
+  isActive?: boolean
+  sortOrder?: number
+}
+
+export interface UpdateChannelRequest {
+  name?: string
+  sourceUrl?: string
+  categoryId?: number
+  tvgId?: string
+  logoUrl?: string
+  description?: string
+  isActive?: boolean
+  sortOrder?: number
+}
+
 export const channelsApi = {
   getAll: ({ page = 1, pageSize = 50, categoryId, providerId, search }: GetChannelsParams = {}) => {
     const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
@@ -19,6 +41,12 @@ export const channelsApi = {
   },
 
   getById: (id: number) => api.get<ChannelResponse>(`/channels/${id}`),
+
+  create: (req: CreateChannelRequest) => api.post<ChannelResponse>('/channels', req),
+
+  update: (id: number, req: UpdateChannelRequest) => api.put<ChannelResponse>(`/channels/${id}`, req),
+
+  delete: (id: number) => api.delete<void>(`/channels/${id}`),
 
   deleteAll: () => api.delete<{ deleted: number }>('/channels'),
 }

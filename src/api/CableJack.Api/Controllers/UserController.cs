@@ -60,6 +60,15 @@ namespace CableJack.Api.Controllers
             return removed ? NoContent() : NotFound();
         }
 
+        [HttpGet("me/stats")]
+        public async Task<ActionResult<UserStatsDto>> GetStats()
+        {
+            var userId = GetUserId();
+            if (userId is null) return Unauthorized();
+
+            return Ok(await userService.GetStatsAsync(userId.Value));
+        }
+
         [HttpGet("me/history")]
         public async Task<ActionResult<PagedResult<WatchHistoryResponse>>> GetWatchHistory([FromQuery] PaginationParams pagination)
         {

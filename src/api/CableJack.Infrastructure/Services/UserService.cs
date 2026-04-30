@@ -198,6 +198,23 @@ namespace CableJack.Infrastructure.Services
                 .ToPagedResultAsync(pagination);
         }
 
+        public async Task<UserStatsDto> GetStatsAsync(int userId)
+        {
+            var favoriteCount = await db.UserFavorites.CountAsync(f => f.UserId == userId);
+            var sessions = await db.WatchHistory
+                .Where(w => w.UserId == userId)
+                .Select(w => new { w.StartedAt, w.StoppedAt })
+                .ToListAsync();
+            var now = DateTime.UtcNow;
+            var totalSeconds = sessions.Sum(s => (long)(s.StoppedAt ?? now).Subtract(s.StartedAt).TotalSeconds);
+            return new UserStatsDto
+            {
+                FavoriteCount = favoriteCount,
+                HistoryCount = sessions.Count,
+                TotalWatchSeconds = totalSeconds,
+            };
+        }
+
         private static string HashPassword(string password)
         {
             byte[] salt = RandomNumberGenerator.GetBytes(16);

@@ -106,7 +106,7 @@ export default function ChannelPage() {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-4">
-            <h1 className="text-2xl font-bold text-white leading-tight">{channel.name}</h1>
+            <h1 className="text-4xl font-bold text-white leading-tight">{channel.name}</h1>
             <button
               onClick={toggleFavorite}
               className={`text-3xl shrink-0 transition-colors ${isFavorite ? 'text-yellow-400' : 'text-gray-600 hover:text-yellow-400'}`}

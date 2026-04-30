@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { userApi } from '../api/user'
 import { useAuth } from '../hooks/useAuth'
@@ -11,6 +11,11 @@ export default function ProfilePage() {
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
+
+  const { data: stats } = useQuery({
+    queryKey: ['user-stats'],
+    queryFn: userApi.getStats,
+  })
 
   const changePassword = useMutation({
     mutationFn: () => userApi.changePassword(current, next),
@@ -35,7 +40,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="p-6 max-w-md">
+    <div className="p-6 max-w-md overflow-y-auto">
       <h1 className="text-xl font-semibold text-white mb-6">Profile</h1>
 
       <div className="bg-gray-800 rounded-xl p-5 mb-6">
@@ -45,6 +50,12 @@ export default function ProfilePage() {
         <p className="text-white">{user?.role}</p>
         <p className="text-gray-400 text-xs mt-3 mb-1">Member since</p>
         <p className="text-white text-sm">{user ? new Date(user.createdAt).toLocaleDateString() : '—'}</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <StatCard label="Favorites" value={stats?.favoriteCount ?? '—'} />
+        <StatCard label="Sessions" value={stats?.historyCount ?? '—'} />
+        <StatCard label="Watch time" value={stats ? fmtWatchTime(stats.totalWatchSeconds) : '—'} />
       </div>
 
       <div className="bg-gray-800 rounded-xl p-5">
@@ -92,4 +103,22 @@ export default function ProfilePage() {
       </div>
     </div>
   )
+}
+
+function StatCard({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="bg-gray-800 rounded-xl p-4 flex flex-col items-center gap-1">
+      <p className="text-white font-semibold text-xl">{value}</p>
+      <p className="text-gray-400 text-xs">{label}</p>
+    </div>
+  )
+}
+
+function fmtWatchTime(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  const mins = Math.floor(seconds / 60)
+  if (mins < 60) return `${mins}m`
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return m === 0 ? `${h}h` : `${h}h ${m}m`
 }

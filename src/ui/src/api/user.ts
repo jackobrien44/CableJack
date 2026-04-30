@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { ChannelResponse, PagedResult, UserResponse, WatchHistoryResponse } from '../types/api'
+import type { ChannelResponse, PagedResult, UserResponse, UserStatsDto, WatchHistoryResponse } from '../types/api'
 
 export const userApi = {
   getMe: () => api.get<UserResponse>('/users/me'),
@@ -13,4 +13,6 @@ export const userApi = {
 
   getHistory: (page = 1, pageSize = 20) =>
     api.get<PagedResult<WatchHistoryResponse>>(`/users/me/history?page=${page}&pageSize=${pageSize}`),
+
+  getStats: () => api.get<UserStatsDto>('/users/me/stats'),
 }

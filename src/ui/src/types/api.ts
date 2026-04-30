@@ -117,6 +117,12 @@ export interface WatchHistoryResponse {
   stoppedAt: string | null
 }
 
+export interface UserStatsDto {
+  favoriteCount: number
+  historyCount: number
+  totalWatchSeconds: number
+}
+
 export interface SystemSettingsDto {
   registrationMode: 'Open' | 'InviteOnly' | 'Disabled'
   maxConcurrentStreams: number
