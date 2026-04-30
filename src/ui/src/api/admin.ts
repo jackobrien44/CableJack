@@ -26,6 +26,9 @@ export const adminApi = {
   getDashboardUserStats: () =>
     api.get<UserStatDto[]>('/admin/dashboard/user-stats'),
 
+  getDashboardErrors: () =>
+    api.get<StreamResponse[]>('/admin/dashboard/errors'),
+
   getActiveStreams: (page = 1, pageSize = 50) =>
     api.get<PagedResult<StreamResponse>>(`/admin/streams?page=${page}&pageSize=${pageSize}`),
 

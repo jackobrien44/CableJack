@@ -8,5 +8,6 @@ namespace CableJack.Core.Interfaces
         Task<List<WatchSessionDto>> GetRecentHistoryAsync(int count = 30);
         Task<List<TopChannelDto>> GetTopChannelsAsync(int count = 10);
         Task<List<UserStatDto>> GetUserStatsAsync();
+        Task<List<StreamResponse>> GetErrorStreamsAsync();
     }
 }

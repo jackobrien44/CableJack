@@ -115,7 +115,7 @@ function PageButton({ onClick, disabled, active, children }: {
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`min-w-[1.75rem] h-8 px-1 sm:min-w-[2.25rem] sm:h-9 sm:px-2 rounded-lg text-xs sm:text-sm font-medium transition-colors disabled:opacity-30 ${
+      className={`min-w-[2.5rem] h-10 px-1 sm:min-w-[2.25rem] sm:h-9 sm:px-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-30 ${
         active
           ? 'bg-violet-600 text-white'
           : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'

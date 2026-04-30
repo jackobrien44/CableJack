@@ -71,6 +71,29 @@ namespace CableJack.Infrastructure.Services
                 .ToList();
         }
 
+        public async Task<List<StreamResponse>> GetErrorStreamsAsync()
+        {
+            var cutoff24h = DateTime.UtcNow.AddHours(-24);
+            return await db.Streams
+                .Include(s => s.Channel)
+                .Include(s => s.User)
+                .Where(s => s.Status == StreamStatus.Error && s.StartedAt >= cutoff24h)
+                .OrderByDescending(s => s.StartedAt)
+                .Select(s => new StreamResponse
+                {
+                    Id = s.Id,
+                    Url = s.Url,
+                    Status = s.Status,
+                    ChannelId = s.ChannelId,
+                    ChannelName = s.Channel.Name,
+                    ChannelLogoUrl = s.Channel.LogoUrl,
+                    UserId = s.UserId,
+                    Username = s.User.Username,
+                    StartedAt = DateTime.SpecifyKind(s.StartedAt, DateTimeKind.Utc),
+                })
+                .ToListAsync();
+        }
+
         public async Task<List<UserStatDto>> GetUserStatsAsync()
         {
             var users = await db.Users.OrderByDescending(u => u.CreatedAt).ToListAsync();

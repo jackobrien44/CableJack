@@ -20,18 +20,20 @@ export default function AdminPage() {
     <div className="flex flex-col h-full overflow-hidden px-6">
       <div className="shrink-0 pt-6 pb-4">
         <h1 className="text-xl font-semibold text-white mb-4">Admin</h1>
-        <div className="flex flex-wrap gap-1 bg-gray-800 rounded-lg p-1 w-fit">
-          {(['dashboard', 'imports', 'providers', 'users', 'settings'] as Tab[]).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors capitalize ${
-                tab === t ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              {t}
-            </button>
-          ))}
+        <div className="overflow-x-auto">
+          <div className="flex gap-1 bg-gray-800 rounded-lg p-1 w-fit">
+            {(['dashboard', 'imports', 'providers', 'users', 'settings'] as Tab[]).map(t => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors capitalize shrink-0 ${
+                  tab === t ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -140,12 +142,14 @@ function fmtRelative(iso: string | null, now: number): string {
 function DashboardTab() {
   const queryClient = useQueryClient()
   const INTERVAL = 10_000
+  const [showErrors, setShowErrors] = useState(false)
 
   const { data: stats } = useQuery({ queryKey: ['admin-dashboard-stats'], queryFn: adminApi.getDashboardStats, refetchInterval: INTERVAL })
   const { data: streamsData } = useQuery({ queryKey: ['admin-streams'], queryFn: () => adminApi.getActiveStreams(), refetchInterval: INTERVAL })
   const { data: recentHistory, dataUpdatedAt: historyUpdatedAt } = useQuery({ queryKey: ['admin-recent-history'], queryFn: adminApi.getDashboardRecentHistory, refetchInterval: INTERVAL })
   const { data: topChannels } = useQuery({ queryKey: ['admin-top-channels'], queryFn: adminApi.getDashboardTopChannels, refetchInterval: INTERVAL })
   const { data: userStats, dataUpdatedAt: userStatsUpdatedAt } = useQuery({ queryKey: ['admin-user-stats'], queryFn: adminApi.getDashboardUserStats, refetchInterval: INTERVAL })
+  const { data: errorStreams } = useQuery({ queryKey: ['admin-dashboard-errors'], queryFn: adminApi.getDashboardErrors, enabled: showErrors, refetchInterval: showErrors ? INTERVAL : false })
 
   const stopStream = useMutation({
     mutationFn: (id: number) => adminApi.adminStopStream(id),
@@ -195,27 +199,61 @@ function DashboardTab() {
 
   const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString() : '—'
 
+  const errorCount = stats?.errorsLast24h ?? 0
   const statCards = [
-    { label: 'Active Streams', value: stats?.activeStreams ?? '—', color: 'text-white' },
-    { label: 'Total Users', value: stats?.totalUsers ?? '—', color: 'text-white' },
-    { label: 'Active Channels', value: stats?.totalChannels ?? '—', color: 'text-white' },
-    { label: 'Sessions (24h)', value: stats?.streamsLast24h ?? '—', color: 'text-white' },
-    { label: 'Errors (24h)', value: stats?.errorsLast24h ?? '—', color: (stats?.errorsLast24h ?? 0) > 0 ? 'text-red-400' : 'text-white' },
-    { label: 'New Users (7d)', value: stats?.newUsersLast7d ?? '—', color: 'text-white' },
+    { label: 'Active Streams', value: stats?.activeStreams ?? '—', color: 'text-white', onClick: undefined },
+    { label: 'Total Users', value: stats?.totalUsers ?? '—', color: 'text-white', onClick: undefined },
+    { label: 'Active Channels', value: stats?.totalChannels ?? '—', color: 'text-white', onClick: undefined },
+    { label: 'Sessions (24h)', value: stats?.streamsLast24h ?? '—', color: 'text-white', onClick: undefined },
+    { label: 'Errors (24h)', value: stats?.errorsLast24h ?? '—', color: errorCount > 0 ? 'text-red-400' : 'text-white', onClick: errorCount > 0 ? () => setShowErrors(v => !v) : undefined },
+    { label: 'New Users (7d)', value: stats?.newUsersLast7d ?? '—', color: 'text-white', onClick: undefined },
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-px">
 
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {statCards.map(({ label, value, color }) => (
-          <div key={label} className="bg-gray-800 rounded-xl p-4">
+        {statCards.map(({ label, value, color, onClick }) => (
+          <div
+            key={label}
+            onClick={onClick}
+            className={`bg-gray-800 rounded-xl p-4 ${onClick ? 'cursor-pointer hover:bg-gray-750 hover:ring-1 hover:ring-red-500/50 transition-colors' : ''} ${onClick && showErrors ? 'ring-1 ring-red-500/50' : ''}`}
+          >
             <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1 leading-tight">{label}</p>
             <p className={`text-2xl font-semibold ${color}`}>{value}</p>
+            {onClick && <p className="text-red-400/70 text-xs mt-1">{showErrors ? 'hide ▴' : 'view ▾'}</p>}
           </div>
         ))}
       </div>
+
+      {/* Error streams detail — shown when Errors card is clicked */}
+      {showErrors && (
+        <Section title="Error Streams (24h)" badge={errorCount} hint="streams that failed in the last 24 hours">
+          {!errorStreams
+            ? <Empty>Loading…</Empty>
+            : errorStreams.length === 0
+            ? <Empty>No error streams found.</Empty>
+            : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-gray-700">
+                    <Th>User</Th><Th>Channel</Th><Th right>Time</Th>
+                  </tr></thead>
+                  <tbody className="divide-y divide-gray-700">
+                    {errorStreams.map(s => (
+                      <tr key={s.id}>
+                        <Td><span className="text-white font-medium">{s.username ?? `User ${s.userId}`}</span></Td>
+                        <Td>{s.channelName}</Td>
+                        <Td right><span className="text-gray-400">{new Date(s.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+        </Section>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -550,7 +588,7 @@ function ImportsTab() {
       />
       <div className="bg-gray-800 rounded-xl p-5">
         <h2 className="text-white font-medium mb-3">Cleanup</h2>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3">
           <button
             onClick={() => {
               if (confirm('Delete all channels? This cannot be undone.')) clearChannels.mutate()
@@ -632,7 +670,7 @@ function ImportCard({ title, accept, loading, result, error, onFile, onUrl }: Im
 
       {mode === 'file' ? (
         <label className={`inline-block cursor-pointer bg-violet-600 hover:bg-violet-500 text-white text-sm px-4 py-2 rounded-lg transition-colors ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
-          {loading ? 'Importing…' : 'Choose file'}
+          {loading ? 'Importing…' : 'Open file'}
           <input
             type="file"
             accept={accept}
@@ -982,7 +1020,8 @@ function UsersTab() {
       )}
 
       <div className="bg-gray-800 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-700">
               <th className="text-left px-4 py-3 text-gray-400 font-medium">Username</th>
@@ -1020,7 +1059,8 @@ function UsersTab() {
               />
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
       {hasNextPage && (

@@ -11,7 +11,7 @@ export default function LoginPage() {
     queryKey: ['registration-mode'],
     queryFn: () => api.get<{ registrationMode: string }>('/auth/registration-mode'),
   })
-  const signupDisabled = regMode?.registrationMode === 'Disabled'
+  const signupAllowed = regMode?.registrationMode === 'Open'
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -34,8 +34,7 @@ export default function LoginPage() {
   return (
     <div className="flex items-center justify-center min-h-svh bg-gray-950">
       <div className="w-full max-w-sm bg-gray-900 rounded-2xl p-8 shadow-xl">
-        <h1 className="text-2xl font-semibold text-white mb-1">CableJack</h1>
-        <p className="text-gray-400 text-sm mb-8">Sign in to continue</p>
+        <h1 className="text-3xl font-semibold text-white text-center mb-8">CableJack</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -72,7 +71,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {!signupDisabled && (
+        {signupAllowed && (
           <div className="mt-6">
             <Link
               to="/register"

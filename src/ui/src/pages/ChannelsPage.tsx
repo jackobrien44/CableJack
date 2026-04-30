@@ -169,10 +169,10 @@ export default function ChannelsPage() {
             )}
           </button>
           {showCategories && (
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 sm:flex-wrap">
               <button
                 onClick={() => setCategoryId(undefined)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors shrink-0 ${
                   categoryId === undefined ? 'bg-violet-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
                 }`}
               >
@@ -182,7 +182,7 @@ export default function ChannelsPage() {
                 <button
                   key={cat.id}
                   onClick={() => setCategoryId(cat.id === categoryId ? undefined : cat.id)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors shrink-0 ${
                     categoryId === cat.id ? 'bg-violet-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
                   }`}
                 >
@@ -254,7 +254,7 @@ function PageButton({ onClick, disabled, active, children }: {
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`min-w-[1.75rem] h-8 px-1 sm:min-w-[2.25rem] sm:h-9 sm:px-2 rounded-lg text-xs sm:text-sm font-medium transition-colors disabled:opacity-30 ${
+      className={`min-w-[2.5rem] h-10 px-1 sm:min-w-[2.25rem] sm:h-9 sm:px-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-30 ${
         active
           ? 'bg-violet-600 text-white'
           : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'

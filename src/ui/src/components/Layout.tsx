@@ -68,7 +68,7 @@ export default function Layout() {
     <div className="flex h-svh">
       <aside className="hidden md:flex md:flex-col w-56 bg-gray-900 border-r border-gray-800 shrink-0">
         <div className="px-5 py-5 border-b border-gray-800">
-          <span className="text-white font-semibold text-lg">CableJack</span>
+          <span className="text-white font-semibold text-xl">CableJack</span>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
