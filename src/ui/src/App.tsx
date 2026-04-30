@@ -8,7 +8,6 @@ import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import ChannelsPage from './pages/ChannelsPage'
 import FavoritesPage from './pages/FavoritesPage'
-import HistoryPage from './pages/HistoryPage'
 import PlayerPage from './pages/PlayerPage'
 import AdminPage from './pages/AdminPage'
 import EpgPage from './pages/EpgPage'
@@ -46,7 +45,6 @@ export default function App() {
                 <Route index element={<ChannelsPage />} />
                 <Route path="categories/:categoryId" element={<ChannelsPage />} />
                 <Route path="favorites" element={<FavoritesPage />} />
-                <Route path="history" element={<HistoryPage />} />
                 <Route path="guide" element={<EpgPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route element={<ProtectedRoute adminOnly />}>

@@ -12,6 +12,8 @@ namespace CableJack.Core.DTOs
 
     public sealed class WatchSessionDto
     {
+        public int Id { get; set; }
+        public int UserId { get; set; }
         public required string Username { get; set; }
         public required string ChannelName { get; set; }
         public required DateTime StartedAt { get; set; }

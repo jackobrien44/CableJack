@@ -1,4 +1,4 @@
-import { useState, useMemo, type FormEvent } from 'react'
+import { useState, useMemo, useRef, type FormEvent } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
@@ -11,7 +11,7 @@ import { providersApi, type CreateProviderRequest } from '../api/providers'
 import { useAuth } from '../hooks/useAuth'
 import type { ImportResult, ProviderResponse, SystemSettingsDto, UserResponse } from '../types/api'
 
-type Tab = 'dashboard' | 'imports' | 'providers' | 'users' | 'settings'
+type Tab = 'dashboard' | 'imports' | 'providers' | 'users' | 'history' | 'settings'
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('dashboard')
@@ -20,20 +20,35 @@ export default function AdminPage() {
     <div className="flex flex-col h-full overflow-hidden px-6">
       <div className="shrink-0 pt-6 pb-4">
         <h1 className="text-xl font-semibold text-white mb-4">Admin</h1>
-        <div className="overflow-x-auto">
-          <div className="flex gap-1 bg-gray-800 rounded-lg p-1 w-fit">
-            {(['dashboard', 'imports', 'providers', 'users', 'settings'] as Tab[]).map(t => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors capitalize shrink-0 ${
-                  tab === t ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                {t}
-              </button>
+        {/* Mobile: native select */}
+        <div className="relative sm:hidden">
+          <select
+            value={tab}
+            onChange={e => setTab(e.target.value as Tab)}
+            className="w-full appearance-none bg-gray-800 border border-gray-700 rounded-lg pl-3 pr-8 py-2 text-sm text-white capitalize focus:outline-none focus:ring-2 focus:ring-violet-500"
+          >
+            {(['dashboard', 'imports', 'providers', 'users', 'history', 'settings'] as Tab[]).map(t => (
+              <option key={t} value={t}>{t}</option>
             ))}
-          </div>
+          </select>
+          <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+            <path d="M6 8L1 3h10L6 8z"/>
+          </svg>
+        </div>
+
+        {/* Desktop: pill tabs */}
+        <div className="hidden sm:flex gap-1 bg-gray-800 rounded-lg p-1 w-fit">
+          {(['dashboard', 'imports', 'providers', 'users', 'history', 'settings'] as Tab[]).map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors capitalize ${
+                tab === t ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -42,10 +57,144 @@ export default function AdminPage() {
         {tab === 'imports' && <ImportsTab />}
         {tab === 'providers' && <ProvidersTab />}
         {tab === 'users' && <UsersTab />}
+        {tab === 'history' && <HistoryTab />}
         {tab === 'settings' && <SettingsTab />}
       </div>
     </div>
   )
+}
+
+// ── History tab ───────────────────────────────────────────────────────────────
+
+function HistoryTab() {
+  const [page, setPage] = useState(1)
+  const [userId, setUserId] = useState<number | undefined>(undefined)
+  const [search, setSearch] = useState('')
+  const [inputValue, setInputValue] = useState('')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const PAGE_SIZE = 50
+
+  const { data: userStats } = useQuery({
+    queryKey: ['admin-user-stats'],
+    queryFn: adminApi.getDashboardUserStats,
+  })
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-history', page, userId, search],
+    queryFn: () => adminApi.getAdminHistory(page, PAGE_SIZE, userId, search || undefined),
+  })
+
+  function handleSearchChange(value: string) {
+    setInputValue(value)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      setSearch(value)
+      setPage(1)
+    }, 300)
+  }
+
+  function handleUserChange(id: number | undefined) {
+    setUserId(id)
+    setPage(1)
+  }
+
+  const entries = data?.items ?? []
+  const totalPages = data?.totalPages ?? 1
+
+  const fmtDuration = (start: string, end: string | null) => {
+    if (!end) return '—'
+    const ms = new Date(end).getTime() - new Date(start).getTime()
+    const mins = Math.floor(ms / 60000)
+    if (mins < 1) return '< 1 min'
+    if (mins < 60) return `${mins} min`
+    return `${Math.floor(mins / 60)}h ${mins % 60}m`
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-2">
+        <select
+          value={userId ?? ''}
+          onChange={e => handleUserChange(e.target.value ? Number(e.target.value) : undefined)}
+          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+        >
+          <option value="">All users</option>
+          {(userStats ?? []).map(u => (
+            <option key={u.userId} value={u.userId}>{u.username}</option>
+          ))}
+        </select>
+        <input
+          type="search"
+          placeholder="Filter by channel…"
+          value={inputValue}
+          onChange={e => handleSearchChange(e.target.value)}
+          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 w-full sm:w-56"
+        />
+      </div>
+
+      <Section title="Watch History" hint={data ? `${data.totalCount.toLocaleString()} sessions` : undefined}>
+        {isLoading
+          ? <Empty>Loading…</Empty>
+          : entries.length === 0
+          ? <Empty>No sessions found.</Empty>
+          : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-gray-700">
+                  <Th>User</Th><Th>Channel</Th><Th>Date</Th><Th right>Duration</Th>
+                </tr></thead>
+                <tbody className="divide-y divide-gray-700">
+                  {entries.map(h => (
+                    <tr key={h.id} className="hover:bg-gray-750">
+                      <Td><span className="text-white font-medium">{h.username}</span></Td>
+                      <Td>{h.channelName}</Td>
+                      <Td>
+                        <span className="text-gray-300">{new Date(h.startedAt).toLocaleDateString()}</span>
+                        <span className="text-gray-500 ml-2 text-xs">{new Date(h.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </Td>
+                      <Td right>{fmtDuration(h.startedAt, h.stoppedAt)}</Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+      </Section>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-0.5 sm:gap-1">
+          <HPageButton onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>‹</HPageButton>
+          {hPageNumbers(page, totalPages).map((p, i) =>
+            p === '…'
+              ? <span key={`e-${i}`} className="px-2 text-gray-600">…</span>
+              : <HPageButton key={p} onClick={() => setPage(p as number)} active={p === page}>{p}</HPageButton>
+          )}
+          <HPageButton onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>›</HPageButton>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function HPageButton({ onClick, disabled, active, children }: { onClick: () => void; disabled?: boolean; active?: boolean; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`min-w-[2.5rem] h-10 px-1 sm:min-w-[2.25rem] sm:h-9 sm:px-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-30 ${
+        active ? 'bg-violet-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function hPageNumbers(current: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  if (current <= 4) return [1, 2, 3, 4, 5, '…', total]
+  if (current >= total - 3) return [1, '…', total - 4, total - 3, total - 2, total - 1, total]
+  return [1, '…', current - 1, current, current + 1, '…', total]
 }
 
 // ── Settings tab ──────────────────────────────────────────────────────────────

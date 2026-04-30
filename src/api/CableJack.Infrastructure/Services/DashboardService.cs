@@ -2,6 +2,7 @@ using CableJack.Core.DTOs;
 using CableJack.Core.Enums;
 using CableJack.Core.Interfaces;
 using CableJack.Infrastructure.Data;
+using CableJack.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace CableJack.Infrastructure.Services
@@ -41,12 +42,41 @@ namespace CableJack.Infrastructure.Services
                 .Take(count)
                 .Select(w => new WatchSessionDto
                 {
+                    Id = w.Id,
+                    UserId = w.UserId,
                     Username = w.User.Username,
                     ChannelName = w.Channel.Name,
                     StartedAt = DateTime.SpecifyKind(w.StartedAt, DateTimeKind.Utc),
                     StoppedAt = w.StoppedAt == null ? (DateTime?)null : DateTime.SpecifyKind(w.StoppedAt.Value, DateTimeKind.Utc),
                 })
                 .ToListAsync();
+        }
+
+        public async Task<PagedResult<WatchSessionDto>> GetAdminHistoryAsync(PaginationParams pagination, int? userId, string? channelSearch)
+        {
+            var query = db.WatchHistory
+                .Include(w => w.User)
+                .Include(w => w.Channel)
+                .AsQueryable();
+
+            if (userId.HasValue)
+                query = query.Where(w => w.UserId == userId.Value);
+
+            if (!string.IsNullOrWhiteSpace(channelSearch))
+                query = query.Where(w => w.Channel.Name.Contains(channelSearch));
+
+            return await query
+                .OrderByDescending(w => w.StartedAt)
+                .Select(w => new WatchSessionDto
+                {
+                    Id = w.Id,
+                    UserId = w.UserId,
+                    Username = w.User.Username,
+                    ChannelName = w.Channel.Name,
+                    StartedAt = DateTime.SpecifyKind(w.StartedAt, DateTimeKind.Utc),
+                    StoppedAt = w.StoppedAt == null ? (DateTime?)null : DateTime.SpecifyKind(w.StoppedAt.Value, DateTimeKind.Utc),
+                })
+                .ToPagedResultAsync(pagination);
         }
 
         public async Task<List<TopChannelDto>> GetTopChannelsAsync(int count = 10)

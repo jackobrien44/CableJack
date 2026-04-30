@@ -94,6 +94,12 @@ namespace CableJack.Api.Controllers
         public async Task<ActionResult<List<StreamResponse>>> GetErrorStreams() =>
             Ok(await dashboardService.GetErrorStreamsAsync());
 
+        [HttpGet("history")]
+        public async Task<ActionResult<PagedResult<WatchSessionDto>>> GetAdminHistory([FromQuery] PaginationParams pagination, [FromQuery] int? userId, [FromQuery] string? search)
+        {
+            return Ok(await dashboardService.GetAdminHistoryAsync(pagination, userId, search));
+        }
+
         [HttpGet("streams")]
         public async Task<PagedResult<StreamResponse>> GetAllStreams([FromQuery] PaginationParams pagination)
         {

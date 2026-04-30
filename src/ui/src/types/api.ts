@@ -74,6 +74,8 @@ export interface DashboardStatsDto {
 }
 
 export interface WatchSessionDto {
+  id: number
+  userId: number
   username: string
   channelName: string
   startedAt: string

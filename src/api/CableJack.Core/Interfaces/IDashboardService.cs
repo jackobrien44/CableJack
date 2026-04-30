@@ -9,5 +9,6 @@ namespace CableJack.Core.Interfaces
         Task<List<TopChannelDto>> GetTopChannelsAsync(int count = 10);
         Task<List<UserStatDto>> GetUserStatsAsync();
         Task<List<StreamResponse>> GetErrorStreamsAsync();
+        Task<PagedResult<WatchSessionDto>> GetAdminHistoryAsync(PaginationParams pagination, int? userId, string? channelSearch);
     }
 }

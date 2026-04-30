@@ -29,6 +29,13 @@ export const adminApi = {
   getDashboardErrors: () =>
     api.get<StreamResponse[]>('/admin/dashboard/errors'),
 
+  getAdminHistory: (page = 1, pageSize = 50, userId?: number, search?: string) => {
+    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+    if (userId) params.set('userId', String(userId))
+    if (search) params.set('search', search)
+    return api.get<PagedResult<WatchSessionDto>>(`/admin/history?${params}`)
+  },
+
   getActiveStreams: (page = 1, pageSize = 50) =>
     api.get<PagedResult<StreamResponse>>(`/admin/streams?page=${page}&pageSize=${pageSize}`),
 
