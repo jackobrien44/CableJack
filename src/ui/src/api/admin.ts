@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { PagedResult, UserResponse, SystemSettingsDto, StreamResponse, DashboardStatsDto, WatchSessionDto, TopChannelDto, UserStatDto } from '../types/api'
+import type { AuditLogDto, PagedResult, UserResponse, SystemSettingsDto, StreamResponse, DashboardStatsDto, WatchSessionDto, TopChannelDto, UserStatDto } from '../types/api'
 
 export interface UpdateUserRequest {
   isActive?: boolean
@@ -62,4 +62,11 @@ export const adminApi = {
 
   deleteUser: (userId: number) =>
     api.delete<void>(`/admin/users/${userId}`),
+
+  getAuditLogs: (page = 1, pageSize = 50, search?: string, action?: string) => {
+    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+    if (search) params.set('search', search)
+    if (action) params.set('action', action)
+    return api.get<PagedResult<AuditLogDto>>(`/admin/audit?${params}`)
+  },
 }

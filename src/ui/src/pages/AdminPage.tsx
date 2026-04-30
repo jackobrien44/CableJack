@@ -9,9 +9,9 @@ import { categoriesApi, type CreateCategoryRequest } from '../api/categories'
 import { epgApi } from '../api/epg'
 import { providersApi, type CreateProviderRequest } from '../api/providers'
 import { useAuth } from '../hooks/useAuth'
-import type { ChannelResponse, ImportResult, ProviderResponse, SystemSettingsDto, UserResponse } from '../types/api'
+import type { AuditLogDto, ChannelResponse, ImportResult, ProviderResponse, SystemSettingsDto, UserResponse } from '../types/api'
 
-type Tab = 'dashboard' | 'imports' | 'providers' | 'categories' | 'channels' | 'users' | 'history' | 'settings'
+type Tab = 'dashboard' | 'imports' | 'providers' | 'categories' | 'channels' | 'users' | 'history' | 'audit' | 'settings'
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('dashboard')
@@ -27,7 +27,7 @@ export default function AdminPage() {
             onChange={e => setTab(e.target.value as Tab)}
             className="w-full appearance-none bg-gray-800 border border-gray-700 rounded-lg pl-3 pr-8 py-2 text-sm text-white capitalize focus:outline-none focus:ring-2 focus:ring-violet-500"
           >
-            {(['dashboard', 'imports', 'providers', 'categories', 'channels', 'users', 'history', 'settings'] as Tab[]).map(t => (
+            {(['dashboard', 'imports', 'providers', 'categories', 'channels', 'users', 'history', 'audit', 'settings'] as Tab[]).map(t => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
@@ -38,7 +38,7 @@ export default function AdminPage() {
 
         {/* Desktop: pill tabs */}
         <div className="hidden sm:flex gap-1 bg-gray-800 rounded-lg p-1 w-fit">
-          {(['dashboard', 'imports', 'providers', 'categories', 'channels', 'users', 'history', 'settings'] as Tab[]).map(t => (
+          {(['dashboard', 'imports', 'providers', 'categories', 'channels', 'users', 'history', 'audit', 'settings'] as Tab[]).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -60,6 +60,7 @@ export default function AdminPage() {
         {tab === 'channels' && <ChannelsTab />}
         {tab === 'users' && <UsersTab />}
         {tab === 'history' && <HistoryTab />}
+        {tab === 'audit' && <AuditTab />}
         {tab === 'settings' && <SettingsTab />}
       </div>
     </div>
@@ -891,15 +892,6 @@ function DashboardTab() {
     return 'text-gray-400'
   }
 
-  const fmtDuration = (startedAt: string, stoppedAt: string | null) => {
-    const ms = (stoppedAt ? new Date(stoppedAt) : new Date()).getTime() - new Date(startedAt).getTime()
-    const secs = Math.floor(ms / 1000)
-    if (secs < 60) return `${secs}s`
-    const mins = Math.floor(secs / 60)
-    if (mins < 60) return `${mins}m ${secs % 60}s`
-    return `${Math.floor(mins / 60)}h ${mins % 60}m`
-  }
-
   const fmtMinutes = (mins: number) => mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`
   const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString() : '—'
 
@@ -1097,12 +1089,12 @@ function Empty({ children }: { children: React.ReactNode }) {
 }
 
 function LiveDuration({ startedAt }: { startedAt: string }) {
-  const [, setTick] = useState(0)
+  const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 1000)
+    const id = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(id)
   }, [])
-  const ms = Date.now() - new Date(startedAt).getTime()
+  const ms = now - new Date(startedAt).getTime()
   const secs = Math.floor(ms / 1000)
   if (secs < 60) return <>{secs}s</>
   const mins = Math.floor(secs / 60)
@@ -1897,5 +1889,129 @@ function UserRow({
         </tr>
       )}
     </>
+  )
+}
+
+// ── Audit tab ─────────────────────────────────────────────────────────────────
+
+const AUDIT_PAGE_SIZE = 50
+
+const ACTION_COLORS: Record<string, string> = {
+  Login: 'text-green-400',
+  LoginFailed: 'text-red-400',
+  Logout: 'text-gray-400',
+  Register: 'text-blue-400',
+  PasswordChanged: 'text-yellow-400',
+  PasswordReset: 'text-yellow-400',
+  UserCreated: 'text-blue-400',
+  UserUpdated: 'text-blue-300',
+  UserDeleted: 'text-red-400',
+  CategoryCreated: 'text-violet-400',
+  CategoryUpdated: 'text-violet-300',
+  CategoryDeleted: 'text-red-400',
+  CategoryDeleteAll: 'text-red-500',
+  ChannelCreated: 'text-violet-400',
+  ChannelUpdated: 'text-violet-300',
+  ChannelDeleted: 'text-red-400',
+  ChannelDeleteAll: 'text-red-500',
+  ProviderCreated: 'text-blue-400',
+  ProviderUpdated: 'text-blue-300',
+  ProviderDeleted: 'text-red-400',
+  StreamStarted: 'text-green-400',
+  StreamStopped: 'text-gray-400',
+  StreamKilled: 'text-red-400',
+  ImportCompleted: 'text-teal-400',
+  EpgImportCompleted: 'text-teal-400',
+  SettingsUpdated: 'text-orange-400',
+}
+
+function AuditTab() {
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [inputValue, setInputValue] = useState('')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['audit', page, search],
+    queryFn: () => adminApi.getAuditLogs(page, AUDIT_PAGE_SIZE, search || undefined),
+  })
+
+  function handleSearchChange(value: string) {
+    setInputValue(value)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => { setSearch(value); setPage(1) }, 300)
+  }
+
+  const entries = data?.items ?? []
+  const totalPages = data?.totalPages ?? 1
+
+  return (
+    <div className="flex flex-col gap-4 pb-3 md:h-full md:overflow-hidden">
+      <div className="shrink-0">
+        <input
+          type="search"
+          placeholder="Search by user or description…"
+          value={inputValue}
+          onChange={e => handleSearchChange(e.target.value)}
+          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 w-full sm:w-72"
+        />
+      </div>
+
+      <div className="md:flex-1 md:min-h-0 md:overflow-hidden">
+        {isLoading
+          ? <div className="text-gray-400 text-sm">Loading…</div>
+          : entries.length === 0
+          ? <div className="text-gray-500 text-sm">No audit log entries found.</div>
+          : (
+          <div className="bg-gray-800 rounded-xl overflow-auto md:overflow-hidden md:h-full">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-gray-800 z-10">
+                <tr className="border-b border-gray-700">
+                  <Th>Time</Th>
+                  <Th>Action</Th>
+                  <Th>Actor</Th>
+                  <Th>Description</Th>
+                  <Th>IP</Th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700">
+                {entries.map(entry => (
+                  <AuditRow key={entry.id} entry={entry} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {totalPages > 1 && (
+        <div className="shrink-0 flex items-center justify-center gap-0.5 sm:gap-1">
+          <HPageButton onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>‹</HPageButton>
+          {hPageNumbers(page, totalPages).map((p, i) =>
+            p === '…'
+              ? <span key={`e-${i}`} className="px-2 text-gray-600">…</span>
+              : <HPageButton key={p} onClick={() => setPage(p as number)} active={p === page}>{p}</HPageButton>
+          )}
+          <HPageButton onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>›</HPageButton>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AuditRow({ entry }: { entry: AuditLogDto }) {
+  const colorCls = ACTION_COLORS[entry.action] ?? 'text-gray-300'
+  return (
+    <tr className="hover:bg-gray-750">
+      <Td>
+        <span className="text-gray-500 text-xs whitespace-nowrap">
+          {new Date(entry.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        </span>
+      </Td>
+      <Td><span className={`font-mono text-xs ${colorCls}`}>{entry.action}</span></Td>
+      <Td><span className="text-gray-300 text-xs">{entry.actorUsername ?? <span className="text-gray-600">—</span>}</span></Td>
+      <Td><span className="text-gray-400 text-xs">{entry.description ?? '—'}</span></Td>
+      <Td><span className="text-gray-600 text-xs font-mono">{entry.ipAddress ?? '—'}</span></Td>
+    </tr>
   )
 }

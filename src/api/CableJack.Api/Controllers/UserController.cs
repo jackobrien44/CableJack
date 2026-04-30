@@ -1,5 +1,6 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using CableJack.Core.DTOs;
+using CableJack.Core.Interfaces;
 using CableJack.Core.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +10,7 @@ namespace CableJack.Api.Controllers
     [ApiController]
     [Route("api/users")]
     [Authorize]
-    public class UserController(IUserService userService) : ControllerBase
+    public class UserController(IUserService userService, IAuditService audit) : ControllerBase
     {
         [HttpGet("me")]
         public async Task<ActionResult<UserResponse>> GetMe()
@@ -28,7 +29,17 @@ namespace CableJack.Api.Controllers
             if (userId is null) return Unauthorized();
 
             await userService.ChangePasswordAsync(userId.Value, request);
+            await audit.LogAsync("PasswordChanged", "User changed their password", "User", userId.Value);
             return NoContent();
+        }
+
+        [HttpGet("me/stats")]
+        public async Task<ActionResult<UserStatsDto>> GetStats()
+        {
+            var userId = GetUserId();
+            if (userId is null) return Unauthorized();
+
+            return Ok(await userService.GetStatsAsync(userId.Value));
         }
 
         [HttpGet("me/favorites")]
@@ -58,15 +69,6 @@ namespace CableJack.Api.Controllers
 
             var removed = await userService.RemoveFavoriteAsync(userId.Value, channelId);
             return removed ? NoContent() : NotFound();
-        }
-
-        [HttpGet("me/stats")]
-        public async Task<ActionResult<UserStatsDto>> GetStats()
-        {
-            var userId = GetUserId();
-            if (userId is null) return Unauthorized();
-
-            return Ok(await userService.GetStatsAsync(userId.Value));
         }
 
         [HttpGet("me/history")]

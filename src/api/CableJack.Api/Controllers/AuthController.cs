@@ -1,4 +1,4 @@
-﻿using CableJack.Core.DTOs;
+using CableJack.Core.DTOs;
 using CableJack.Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -7,7 +7,7 @@ namespace CableJack.Api.Controllers
 {
     [ApiController]
     [Route("api/auth")]
-    public class AuthController(IAuthService authService, ISettingsService settingsService) : ControllerBase
+    public class AuthController(IAuthService authService, ISettingsService settingsService, IAuditService audit) : ControllerBase
     {
         [HttpGet("registration-mode")]
         public async Task<IActionResult> GetRegistrationMode()
@@ -23,6 +23,7 @@ namespace CableJack.Api.Controllers
             try
             {
                 var response = await authService.RegisterAsync(request);
+                await audit.LogAsync("Register", $"New user registered: {request.Username}");
                 return Ok(response);
             }
             catch (InvalidOperationException ex)
@@ -40,10 +41,12 @@ namespace CableJack.Api.Controllers
                 var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
                 var deviceInfo = HttpContext.Request.Headers.UserAgent.ToString();
                 var response = await authService.LoginAsync(request, ipAddress, deviceInfo);
+                await audit.LogAsync("Login", $"User logged in: {request.Username}");
                 return Ok(response);
             }
             catch (UnauthorizedAccessException ex)
             {
+                await audit.LogAsync("LoginFailed", $"Failed login attempt for: {request.Username}");
                 return Unauthorized(new { message = ex.Message });
             }
         }
@@ -67,6 +70,7 @@ namespace CableJack.Api.Controllers
         public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
         {
             await authService.RevokeTokenAsync(request.RefreshToken);
+            await audit.LogAsync("Logout");
             return NoContent();
         }
     }

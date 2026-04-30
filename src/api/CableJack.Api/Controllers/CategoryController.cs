@@ -7,7 +7,7 @@ namespace CableJack.Api.Controllers
 {
     [ApiController]
     [Route("api/categories")]
-    public class CategoryController(ICategoryService categoryService) : ControllerBase
+    public class CategoryController(ICategoryService categoryService, IAuditService audit) : ControllerBase
     {
         [HttpGet]
         public async Task<PagedResult<CategoryResponse>> GetCategories([FromQuery] PaginationParams pagination)
@@ -27,6 +27,7 @@ namespace CableJack.Api.Controllers
         public async Task<ActionResult<CategoryResponse>> CreateCategory([FromBody] CreateCategoryRequest request)
         {
             var category = await categoryService.CreateCategoryAsync(request);
+            await audit.LogAsync("CategoryCreated", $"Created category: {category.Name}", "Category", category.Id);
             return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, category);
         }
 
@@ -35,7 +36,9 @@ namespace CableJack.Api.Controllers
         public async Task<ActionResult<CategoryResponse>> UpdateCategory(int id, [FromBody] UpdateCategoryRequest request)
         {
             var category = await categoryService.UpdateCategoryAsync(id, request);
-            return category is null ? NotFound() : Ok(category);
+            if (category is null) return NotFound();
+            await audit.LogAsync("CategoryUpdated", $"Updated category: {category.Name}", "Category", id);
+            return Ok(category);
         }
 
         [HttpDelete]
@@ -43,6 +46,7 @@ namespace CableJack.Api.Controllers
         public async Task<IActionResult> DeleteAllCategories()
         {
             var count = await categoryService.DeleteAllCategoriesAsync();
+            await audit.LogAsync("CategoryDeleteAll", $"Deleted all categories ({count})");
             return Ok(new { deleted = count });
         }
 
@@ -51,7 +55,9 @@ namespace CableJack.Api.Controllers
         public async Task<IActionResult> DeleteCategory(int id)
         {
             var deleted = await categoryService.DeleteCategoryAsync(id);
-            return deleted ? NoContent() : NotFound();
+            if (!deleted) return NotFound();
+            await audit.LogAsync("CategoryDeleted", $"Deleted category #{id}", "Category", id);
+            return NoContent();
         }
     }
 }

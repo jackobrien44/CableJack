@@ -16,6 +16,7 @@ namespace CableJack.Infrastructure.Data
         public DbSet<WatchHistory> WatchHistory { get; set; }
         public DbSet<Provider> Providers { get; set; }
         public DbSet<SystemSetting> SystemSettings { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -93,6 +94,9 @@ namespace CableJack.Infrastructure.Data
             modelBuilder.Entity<SystemSetting>()
                 .HasIndex(s => s.Key)
                 .IsUnique();
+
+            modelBuilder.Entity<AuditLog>()
+                .HasIndex(a => a.Timestamp);
         }
 
     }
