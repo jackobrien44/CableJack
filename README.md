@@ -2,36 +2,54 @@
   <img src="https://github.com/jackobrien44/CableJack/raw/main/docs/logo.png" alt="Logo">
 </p>
 
-# CableJack 📺
+# CableJack
 
-A lightweight IPTV streaming web application designed for small-scale deployment.
+A self-hosted IPTV streaming application. Import M3U playlists and XMLTV EPG data from your provider and watch live channels from any browser.
 
-## 🚀 Overview
-**CableJack** is a full-stack solution for serving and managing IPTV streams. It features a modern, responsive interface and a robust backend designed for performance and ease of use.
+## Features
 
-## 🛠 Tech Stack
-- **Backend:** ASP.NET Core 8.0 (C#)
-- **Frontend:** React 18+ with TypeScript
+- **Live streaming** — HLS playback powered by ffmpeg transcoding
+- **TV Guide** — EPG grid showing current and upcoming programmes with search
+- **Favorites** — pin channels for quick access
+- **Multi-user** — JWT authentication with role-based access (User / Administrator)
+- **Admin dashboard** — real-time stream monitoring, activity charts, watch history, and user stats
+- **Provider management** — manage multiple IPTV providers, import M3U and EPG by file or URL
+- **Configurable limits** — max concurrent streams per user, registration mode (open / invite-only / disabled)
 
-## 📋 Features
-- **Stream Aggregation:** Centralize multiple IPTV sources.
-- **User Management:** Secure access for a small group of users.
-- **Live Playback:** Integrated web player for seamless streaming.
-- **Responsive Design:** Works on desktops, tablets, and mobile devices.
+## Stack
 
-## ⚙️ Getting Started
+| Layer | Technology |
+|---|---|
+| Backend | ASP.NET Core (.NET 10), Entity Framework Core, SQLite |
+| Frontend | React, TypeScript, Tailwind CSS, TanStack Query |
+| Streaming | ffmpeg (HLS) |
+| Auth | JWT access tokens + refresh tokens |
 
-### Prerequisites
-- [.NET 8.0 SDK](https://microsoft.com)
-- [Node.js](https://nodejs.org) (v18 or later)
-- [NPM](https://npmjs.com)
+## Deployment
 
-### Installation
+A Docker image is published to the GitHub Container Registry on every release.
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/jackobrien44/CableJack
-   ```
+```yaml
+services:
+  cablejack:
+    image: ghcr.io/jackobrien44/cablejack:latest
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/cablejack.db
+      - Jwt__Key=<your-secret-key>
+      - Jwt__Issuer=CableJack
+      - Jwt__Audience=CableJack
+```
 
-## 📜 License
+Or build from source:
+
+```bash
+docker build -t cablejack .
+docker run -p 5000:5000 cablejack
+```
+
+## License
 This project is licensed under the MIT License.
