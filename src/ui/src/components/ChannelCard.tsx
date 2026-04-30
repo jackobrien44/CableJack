@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { ChannelResponse } from '../types/api'
 
 interface ChannelCardProps {
@@ -35,7 +36,12 @@ export function ChannelCard({ channel, isFavorite, onPlay, onToggleFavorite, isS
       </button>
 
       <div className="px-3 py-3 flex items-center justify-between gap-2">
-        <span className="text-white text-base font-medium truncate">{channel.name}</span>
+        <Link
+          to={`/channels/${channel.id}`}
+          className="text-white text-base font-medium truncate hover:text-violet-300 transition-colors"
+        >
+          {channel.name}
+        </Link>
         <button
           onClick={onToggleFavorite}
           className={`text-2xl shrink-0 transition-colors ${isFavorite ? 'text-yellow-400' : 'text-gray-600 hover:text-yellow-400'}`}

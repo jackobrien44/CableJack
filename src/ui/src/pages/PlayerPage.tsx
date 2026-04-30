@@ -200,10 +200,10 @@ export default function PlayerPage() {
         <div className="w-full border-t md:w-80 xl:w-96 flex flex-col md:border-l md:border-t-0 border-gray-800 max-h-[55svh] md:max-h-none md:h-svh overflow-hidden">
           {/* Now playing */}
           <div className="px-5 py-4 border-b border-gray-800 shrink-0">
-            <p className="text-white font-semibold text-sm mb-2">{stream?.channelName ?? '…'}</p>
+            <p className="text-white font-bold text-2xl mb-3">{stream?.channelName ?? '…'}</p>
             {nowPlaying ? (
               <>
-                <p className="text-gray-200 text-sm font-medium">{nowPlaying.title}</p>
+                <p className="text-gray-200 text-base font-medium">{nowPlaying.title}</p>
                 <p className="text-gray-500 text-xs mt-0.5">
                   {fmtTime(nowPlaying.startTime)} – {fmtTime(nowPlaying.endTime)}
                 </p>
@@ -219,7 +219,7 @@ export default function PlayerPage() {
           {/* Schedule */}
           {upcomingList.length > 0 && (
             <div className="flex flex-col overflow-hidden flex-1">
-              <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider px-5 py-3 shrink-0">Up Next</p>
+              <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider px-5 py-3 shrink-0">Up Next</p>
               <div className="overflow-y-auto divide-y divide-gray-800">
                 {upcomingList.map(p => <ScheduleRow key={p.id} programme={p} />)}
               </div>
@@ -234,7 +234,10 @@ export default function PlayerPage() {
 function ScheduleRow({ programme }: { programme: ProgrammeResponse }) {
   return (
     <div className="flex gap-4 px-5 py-3 hover:bg-gray-900 transition-colors">
-      <span className="text-gray-500 text-sm w-20 shrink-0 pt-0.5">{fmtTime(programme.startTime)}</span>
+      <div className="text-gray-500 text-sm w-16 shrink-0 pt-0.5">
+        <span className="block">{fmtTime(programme.startTime)}</span>
+        <span className="block">{fmtTime(programme.endTime)}</span>
+      </div>
       <div className="min-w-0">
         <p className="text-gray-200 text-sm font-medium truncate">{programme.title}</p>
         {programme.description && (

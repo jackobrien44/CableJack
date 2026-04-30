@@ -13,6 +13,7 @@ import AdminPage from './pages/AdminPage'
 import EpgPage from './pages/EpgPage'
 import ProfilePage from './pages/ProfilePage'
 import RegisterPage from './pages/RegisterPage'
+import ChannelPage from './pages/ChannelPage'
 import { ApiError } from './api/client'
 import { useStopStreamsOnExit } from './hooks/useStopStreamsOnExit'
 
@@ -46,6 +47,7 @@ export default function App() {
                 <Route path="categories/:categoryId" element={<ChannelsPage />} />
                 <Route path="favorites" element={<FavoritesPage />} />
                 <Route path="guide" element={<EpgPage />} />
+                <Route path="channels/:id" element={<ChannelPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route element={<ProtectedRoute adminOnly />}>
                   <Route path="admin" element={<AdminPage />} />
