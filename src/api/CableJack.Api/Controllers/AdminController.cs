@@ -132,7 +132,7 @@ namespace CableJack.Api.Controllers
                 .Select(a => new AuditLogDto
                 {
                     Id = a.Id,
-                    Timestamp = a.Timestamp,
+                    Timestamp = DateTime.SpecifyKind(a.Timestamp, DateTimeKind.Utc),
                     Action = a.Action,
                     ActorId = a.ActorId,
                     ActorUsername = a.ActorUsername,

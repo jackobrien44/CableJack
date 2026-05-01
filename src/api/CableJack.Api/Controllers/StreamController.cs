@@ -80,6 +80,7 @@ namespace CableJack.Api.Controllers
             var userId = GetUserId();
             if (userId is null) return Unauthorized();
             await streamService.StopAllUserStreamsAsync(userId.Value);
+            await audit.LogAsync("StreamStopped", "Stopped all active streams");
             return NoContent();
         }
 
