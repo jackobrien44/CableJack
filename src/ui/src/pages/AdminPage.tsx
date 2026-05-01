@@ -931,21 +931,28 @@ function DashboardTab() {
             : errorStreams.length === 0
             ? <Empty>No error streams found.</Empty>
             : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead><tr className="border-b border-gray-700">
-                    <Th>User</Th><Th>Channel</Th><Th right>Time</Th>
-                  </tr></thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {errorStreams.map(s => (
-                      <tr key={s.id}>
-                        <Td><span className="text-white font-medium">{s.username ?? `User ${s.userId}`}</span></Td>
-                        <Td>{s.channelName}</Td>
-                        <Td right><span className="text-gray-400">{new Date(s.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></Td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="divide-y divide-gray-700">
+                {errorStreams.map(s => {
+                  const startedAt = new Date(s.startedAt)
+                  const minsAgo = Math.floor((Date.now() - startedAt.getTime()) / 60_000)
+                  const timeAgo = minsAgo < 60 ? `${minsAgo}m ago` : `${Math.floor(minsAgo / 60)}h ${minsAgo % 60}m ago`
+                  return (
+                    <div key={s.id} className="px-5 py-3 flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="text-white font-medium text-sm truncate">{s.channelName}</p>
+                        <p className="text-gray-400 text-xs mt-0.5">{s.username ?? `User ${s.userId}`}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-red-400 text-xs font-medium">{timeAgo}</p>
+                        <p className="text-gray-500 text-xs mt-0.5">
+                          {startedAt.toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                          {' '}
+                          {startedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
         </Section>

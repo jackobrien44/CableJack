@@ -11,10 +11,9 @@ interface ChannelRowProps {
 
 export function ChannelRow({ channel, isFavorite, onPlay, onToggleFavorite, isStarting }: ChannelRowProps) {
   return (
-    <button
-      onClick={onPlay}
-      disabled={isStarting}
-      className="w-full flex items-center gap-3 bg-gray-800 hover:bg-gray-700 rounded-xl px-3 py-2 transition-colors text-left group"
+    <div
+      onClick={isStarting ? undefined : onPlay}
+      className={`flex items-center gap-3 bg-gray-800 rounded-xl px-3 py-2 transition-colors group ${isStarting ? 'opacity-60 cursor-default' : 'hover:bg-gray-700 cursor-pointer'}`}
     >
       <div className="shrink-0 aspect-square w-12 flex items-center justify-center overflow-hidden rounded-lg">
         {channel.logoUrl ? (
@@ -47,6 +46,6 @@ export function ChannelRow({ channel, isFavorite, onPlay, onToggleFavorite, isSt
       >
         ★
       </button>
-    </button>
+    </div>
   )
 }
