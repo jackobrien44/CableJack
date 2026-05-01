@@ -895,6 +895,7 @@ function DashboardTab() {
   const fmtMinutes = (mins: number) => mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`
   const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString() : '—'
 
+  const now = Date.now()
   const errorCount = stats?.errorsLast24h ?? 0
   const statCards = [
     { label: 'Active Streams', value: stats?.activeStreams ?? '—', color: 'text-white', onClick: undefined },
@@ -934,7 +935,7 @@ function DashboardTab() {
               <div className="divide-y divide-gray-700">
                 {errorStreams.map(s => {
                   const startedAt = new Date(s.startedAt)
-                  const minsAgo = Math.floor((Date.now() - startedAt.getTime()) / 60_000)
+                  const minsAgo = Math.floor((now - startedAt.getTime()) / 60_000)
                   const timeAgo = minsAgo < 60 ? `${minsAgo}m ago` : `${Math.floor(minsAgo / 60)}h ${minsAgo % 60}m ago`
                   return (
                     <div key={s.id} className="px-5 py-3 flex items-center justify-between gap-4">
