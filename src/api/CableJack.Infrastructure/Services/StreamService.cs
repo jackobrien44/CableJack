@@ -100,6 +100,16 @@ namespace CableJack.Infrastructure.Services
             });
             await db.SaveChangesAsync();
 
+            // Keep only the 10 most recent history rows per user
+            var overflow = await db.WatchHistory
+                .Where(w => w.UserId == userId)
+                .OrderByDescending(w => w.StartedAt)
+                .Skip(10)
+                .Select(w => w.Id)
+                .ToListAsync();
+            if (overflow.Count > 0)
+                await db.WatchHistory.Where(w => overflow.Contains(w.Id)).ExecuteDeleteAsync();
+
             // Reload to pick up URL and status written by FFmpegService
             await db.Entry(stream).ReloadAsync();
             await db.Entry(stream).Reference(s => s.Channel).LoadAsync();

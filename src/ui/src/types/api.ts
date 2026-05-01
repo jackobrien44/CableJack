@@ -53,6 +53,7 @@ export interface ChannelResponse {
   providerName: string | null
   isActive: boolean
   sortOrder: number
+  createdAt: string
 }
 
 export interface StreamResponse {

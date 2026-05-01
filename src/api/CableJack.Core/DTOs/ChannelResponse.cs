@@ -11,6 +11,7 @@ namespace CableJack.Core.DTOs
         public required string CategoryName { get; set; }
         public required bool IsActive { get; set; }
         public required int SortOrder { get; set; }
+        public required DateTime CreatedAt { get; set; }
         public required List<ChannelSourceResponse> Sources { get; set; }
     }
 }

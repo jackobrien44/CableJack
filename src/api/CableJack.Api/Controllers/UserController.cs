@@ -80,6 +80,16 @@ namespace CableJack.Api.Controllers
             return Ok(await userService.GetWatchHistoryAsync(userId.Value, pagination));
         }
 
+        [HttpDelete("me/history/{id:int}")]
+        public async Task<IActionResult> DeleteHistoryEntry(int id)
+        {
+            var userId = GetUserId();
+            if (userId is null) return Unauthorized();
+
+            var deleted = await userService.DeleteWatchHistoryEntryAsync(userId.Value, id);
+            return deleted ? NoContent() : NotFound();
+        }
+
         private int? GetUserId()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");

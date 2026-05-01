@@ -40,6 +40,8 @@ export const channelsApi = {
     return api.get<PagedResult<ChannelResponse>>(`/channels?${params}`)
   },
 
+  getRecent: (count = 20) => api.get<ChannelResponse[]>(`/channels/recent?count=${count}`),
+
   getById: (id: number) => api.get<ChannelResponse>(`/channels/${id}`),
 
   create: (req: CreateChannelRequest) => api.post<ChannelResponse>('/channels', req),

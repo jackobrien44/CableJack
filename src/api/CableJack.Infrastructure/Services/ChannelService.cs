@@ -57,6 +57,7 @@ namespace CableJack.Infrastructure.Services
                 IsActive = request.IsActive,
                 SortOrder = request.SortOrder,
                 HasSources = false,
+                CreatedAt = DateTime.UtcNow,
             };
 
             db.Channels.Add(channel);
@@ -93,6 +94,18 @@ namespace CableJack.Infrastructure.Services
             return ToResponse(channel);
         }
 
+        public async Task<List<ChannelResponse>> GetRecentChannelsAsync(int count = 20)
+        {
+            return await db.Channels
+                .Include(c => c.Category)
+                .Include(c => c.Sources).ThenInclude(s => s.Provider)
+                .Where(c => c.IsActive && c.HasSources)
+                .OrderByDescending(c => c.CreatedAt)
+                .Take(count)
+                .Select(c => ToResponse(c))
+                .ToListAsync();
+        }
+
         public async Task<int> DeleteAllChannelsAsync()
         {
             return await db.Channels.ExecuteDeleteAsync();
@@ -119,6 +132,7 @@ namespace CableJack.Infrastructure.Services
             CategoryName = c.Category.Name,
             IsActive = c.IsActive,
             SortOrder = c.SortOrder,
+            CreatedAt = DateTime.SpecifyKind(c.CreatedAt, DateTimeKind.Utc),
             Sources = c.Sources
                 .OrderBy(s => s.Priority)
                 .Select(s => new ChannelSourceResponse
