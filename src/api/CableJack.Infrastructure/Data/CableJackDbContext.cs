@@ -15,6 +15,7 @@ namespace CableJack.Infrastructure.Data
         public DbSet<UserFavorite> UserFavorites { get; set; }
         public DbSet<WatchHistory> WatchHistory { get; set; }
         public DbSet<Provider> Providers { get; set; }
+        public DbSet<ChannelSource> ChannelSources { get; set; }
         public DbSet<SystemSetting> SystemSettings { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
 
@@ -28,11 +29,17 @@ namespace CableJack.Infrastructure.Data
                 .HasForeignKey(c => c.CategoryId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Channel>()
-                .HasOne(c => c.Provider)
-                .WithMany(p => p.Channels)
-                .HasForeignKey(c => c.ProviderId)
-                .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<ChannelSource>()
+                .HasOne(cs => cs.Channel)
+                .WithMany(c => c.Sources)
+                .HasForeignKey(cs => cs.ChannelId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ChannelSource>()
+                .HasOne(cs => cs.Provider)
+                .WithMany(p => p.Sources)
+                .HasForeignKey(cs => cs.ProviderId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Stream>()
                 .HasOne(s => s.Channel)
@@ -45,6 +52,12 @@ namespace CableJack.Infrastructure.Data
                 .WithMany(s => s.Streams)
                 .HasForeignKey(s => s.UserId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Stream>()
+                .HasOne(s => s.Provider)
+                .WithMany()
+                .HasForeignKey(s => s.ProviderId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<UserToken>()
                 .HasOne(u => u.User)

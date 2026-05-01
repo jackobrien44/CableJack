@@ -31,6 +31,7 @@ public static class ServiceExtensions
         services.AddScoped<IImportService, ImportService>();
         services.AddScoped<IEpgService, EpgService>();
         services.AddScoped<IProviderService, ProviderService>();
+        services.AddScoped<IChannelSourceService, ChannelSourceService>();
         services.AddScoped<ISettingsService, SettingsService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IAuditService, AuditService>();
