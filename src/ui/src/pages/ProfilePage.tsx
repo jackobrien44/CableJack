@@ -6,7 +6,7 @@ import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../api/client'
 
 export default function ProfilePage() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
 
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
@@ -40,7 +40,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="p-6 max-w-md overflow-y-auto">
+    <div className="flex-1 min-h-0 overflow-y-auto">
+    <div className="p-6 max-w-md">
       <h1 className="text-xl font-semibold text-white mb-6">Profile</h1>
 
       <div className="bg-gray-800 rounded-xl p-5 mb-6">
@@ -101,6 +102,14 @@ export default function ProfilePage() {
           </button>
         </form>
       </div>
+
+      <button
+        onClick={logout}
+        className="md:hidden mt-6 w-full text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 hover:bg-gray-800 px-4 py-2.5 rounded-lg transition-colors"
+      >
+        Sign out
+      </button>
+    </div>
     </div>
   )
 }
