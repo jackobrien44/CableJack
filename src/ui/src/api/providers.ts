@@ -6,6 +6,7 @@ export interface CreateProviderRequest {
   baseUrl?: string
   username?: string
   password?: string
+  maxConcurrentStreams?: number
   expiresAt?: string
 }
 
@@ -14,6 +15,7 @@ export interface UpdateProviderRequest {
   baseUrl?: string
   username?: string
   password?: string
+  maxConcurrentStreams?: number
   expiresAt?: string
 }
 
