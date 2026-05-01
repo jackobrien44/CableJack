@@ -1042,7 +1042,7 @@ function DashboardTab() {
           : (
             <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead><tr className="border-b border-gray-700">
-                <Th>Username</Th><Th right>Active</Th><Th right>Sessions</Th><Th right>Watch time</Th><Th right>Last login</Th><Th right>Joined</Th>
+                <Th>Username</Th><Th right>Live</Th><Th right>Sessions</Th><Th right>Watch time</Th><Th right>Last login</Th><Th right>Joined</Th>
               </tr></thead>
               <tbody className="divide-y divide-gray-700">
                 {userStats.map((u: UserStatDto) => (
@@ -1051,7 +1051,7 @@ function DashboardTab() {
                       <span className={u.isActive ? 'text-white font-medium' : 'text-gray-500 font-medium'}>{u.username}</span>
                       {!u.isActive && <span className="ml-2 text-xs text-red-400">disabled</span>}
                     </Td>
-                    <Td right>{u.activeStreams > 0 ? <span className="text-green-400 font-medium">{u.activeStreams}</span> : <span className="text-gray-600">—</span>}</Td>
+                    <Td right>{u.activeStreams > 0 ? <span className="text-green-400 font-medium">{u.activeStreams}</span> : <span className="text-gray-500">—</span>}</Td>
                     <Td right>{u.totalSessions}</Td>
                     <Td right>{fmtMinutes(u.totalMinutes)}</Td>
                     <Td right>{fmtRelative(u.lastLoginAt, userStatsUpdatedAt)}</Td>
