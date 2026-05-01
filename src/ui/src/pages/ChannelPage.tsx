@@ -97,6 +97,7 @@ export default function ChannelPage() {
               src={channel.logoUrl}
               alt={channel.name}
               className="max-w-full max-h-full object-contain p-4"
+              style={{ filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.6)) drop-shadow(0 0 6px rgba(255,255,255,0.15))' }}
               onError={e => (e.currentTarget.style.display = 'none')}
             />
           ) : (

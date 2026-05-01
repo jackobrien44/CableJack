@@ -14,6 +14,7 @@ import EpgPage from './pages/EpgPage'
 import ProfilePage from './pages/ProfilePage'
 import RegisterPage from './pages/RegisterPage'
 import ChannelPage from './pages/ChannelPage'
+import HomePage from './pages/HomePage'
 import { ApiError } from './api/client'
 import { useStopStreamsOnExit } from './hooks/useStopStreamsOnExit'
 
@@ -43,7 +44,8 @@ export default function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
-                <Route index element={<ChannelsPage />} />
+                <Route index element={<HomePage />} />
+                <Route path="channels" element={<ChannelsPage />} />
                 <Route path="categories/:categoryId" element={<ChannelsPage />} />
                 <Route path="favorites" element={<FavoritesPage />} />
                 <Route path="guide" element={<EpgPage />} />

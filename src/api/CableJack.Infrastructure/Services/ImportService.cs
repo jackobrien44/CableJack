@@ -94,7 +94,7 @@ namespace CableJack.Infrastructure.Services
 
                 if (channel is not null)
                 {
-                    channel.LogoUrl = logoUrl;
+                    if (logoUrl is { Length: > 0 }) channel.LogoUrl = logoUrl;
                     if (description is { Length: > 0 } && string.IsNullOrEmpty(channel.Description))
                         channel.Description = description;
                     // Note: Do NOT update Name or Category for existing channels — they should be set once and preserved

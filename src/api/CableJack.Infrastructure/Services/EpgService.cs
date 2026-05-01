@@ -172,6 +172,7 @@ namespace CableJack.Infrastructure.Services
             Id = p.Id,
             ChannelId = p.ChannelId,
             ChannelName = p.Channel.Name,
+            ChannelLogoUrl = p.Channel.LogoUrl,
             Title = p.Title,
             Description = p.Description,
             StartTime = DateTime.SpecifyKind(p.StartTime, DateTimeKind.Utc),

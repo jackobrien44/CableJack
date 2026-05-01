@@ -21,6 +21,7 @@ export function ChannelRow({ channel, isFavorite, onPlay, onToggleFavorite, isSt
             src={channel.logoUrl}
             alt={channel.name}
             className="w-full h-full object-contain p-1.5"
+            style={{ filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.35)) drop-shadow(0 0 5px rgba(255,255,255,0.08))' }}
             onError={e => (e.currentTarget.style.display = 'none')}
           />
         ) : (

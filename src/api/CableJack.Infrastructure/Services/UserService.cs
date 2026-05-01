@@ -181,6 +181,7 @@ namespace CableJack.Infrastructure.Services
                     Id = w.Id,
                     ChannelId = w.ChannelId,
                     ChannelName = w.Channel.Name,
+                    ChannelLogoUrl = w.Channel.LogoUrl,
                     StartedAt = w.StartedAt,
                     StoppedAt = w.StoppedAt,
                 })
