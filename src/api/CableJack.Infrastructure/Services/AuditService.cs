@@ -24,7 +24,10 @@ namespace CableJack.Infrastructure.Services
                 actorUsername = ctx.User.Identity.Name;
             }
 
-            var ipAddress = ctx?.Connection.RemoteIpAddress?.ToString();
+            var ip = ctx?.Connection.RemoteIpAddress;
+            var ipAddress = ip is not null
+                ? (ip.IsIPv4MappedToIPv6 ? ip.MapToIPv4().ToString() : ip.ToString())
+                : null;
 
             db.AuditLogs.Add(new AuditLog
             {
