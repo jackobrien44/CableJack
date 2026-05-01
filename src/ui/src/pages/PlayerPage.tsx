@@ -65,7 +65,7 @@ export default function PlayerPage() {
 
   const stop = useMutation({
     mutationFn: () => streamsApi.stop(streamId!),
-    onSuccess: () => navigate(-1),
+    onSettled: () => navigate(-1),
   })
 
   const retry = useMutation({
@@ -185,7 +185,7 @@ export default function PlayerPage() {
             slots={{
               beforePlayButton: (
                 <button
-                  onClick={() => stop.mutate()}
+                  onClick={handleExit}
                   disabled={stop.isPending}
                   className="vds-button"
                   title="Stop and go back"
