@@ -26,7 +26,7 @@ namespace CableJack.Infrastructure.Data
                 .HasOne(c => c.Category)
                 .WithMany(c => c.Channels)
                 .HasForeignKey(c => c.CategoryId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Channel>()
                 .HasOne(c => c.Provider)
