@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { MediaPlayer, MediaProvider, isHLSProvider } from '@vidstack/react'
 import type { MediaPlayerInstance } from '@vidstack/react'
@@ -14,6 +14,12 @@ export default function PlayerPage() {
   const { id } = useParams<{ id: string }>()
   const channelId = Number(id)
   const navigate = useNavigate()
+  const location = useLocation()
+
+  function goBack() {
+    if (location.key !== 'default') navigate(-1)
+    else navigate('/', { replace: true })
+  }
   const startedRef = useRef(false)
   const cancelledRef = useRef(false)
   const [streamId, setStreamId] = useState<number | null>(null)
@@ -65,7 +71,7 @@ export default function PlayerPage() {
 
   const stop = useMutation({
     mutationFn: () => streamsApi.stop(streamId!),
-    onSettled: () => navigate(-1),
+    onSettled: () => goBack(),
   })
 
   const retry = useMutation({
@@ -105,7 +111,7 @@ export default function PlayerPage() {
       stop.mutate()
     } else {
       cancelledRef.current = true
-      navigate(-1)
+      goBack()
     }
   }
 
