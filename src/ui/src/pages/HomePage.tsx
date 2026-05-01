@@ -41,7 +41,7 @@ function ChannelCard({ id, name, logoUrl, nowPlaying, compact }: ChannelCardProp
       <div className="relative aspect-video bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center overflow-hidden">
         {logoUrl
           ? <img
-              src={logoUrl}
+              src={logoUrl.replace(/^http:\/\//i, 'https://')}
               alt={name}
               className="max-w-[80%] max-h-[70%] object-contain"
               style={{ filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.6)) drop-shadow(0 0 6px rgba(255,255,255,0.15))' }}
