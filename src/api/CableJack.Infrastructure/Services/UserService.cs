@@ -188,6 +188,14 @@ namespace CableJack.Infrastructure.Services
                 .ToPagedResultAsync(pagination);
         }
 
+        public async Task<bool> DeleteWatchHistoryEntryAsync(int userId, int entryId)
+        {
+            var deleted = await db.WatchHistory
+                .Where(w => w.Id == entryId && w.UserId == userId)
+                .ExecuteDeleteAsync();
+            return deleted > 0;
+        }
+
         public async Task<UserStatsDto> GetStatsAsync(int userId)
         {
             var favoriteCount = await db.UserFavorites.CountAsync(f => f.UserId == userId);

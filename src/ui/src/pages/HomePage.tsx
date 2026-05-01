@@ -1,10 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
 import { epgApi } from '../api/epg'
 import { adminApi } from '../api/admin'
 import { providersApi } from '../api/providers'
+import { channelsApi } from '../api/channels'
 import { useAuth } from '../hooks/useAuth'
 import type { ProgrammeResponse } from '../types/api'
 
@@ -19,31 +20,28 @@ function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-function fmtHours(seconds: number) {
-  const h = Math.floor(seconds / 3600)
-  return h === 1 ? '1 hr' : `${h} hrs`
-}
 
 interface ChannelCardProps {
   id: number
   name: string
   logoUrl?: string | null
   nowPlaying?: ProgrammeResponse
+  compact?: boolean
 }
 
-function ChannelCard({ id, name, logoUrl, nowPlaying }: ChannelCardProps) {
+function ChannelCard({ id, name, logoUrl, nowPlaying, compact }: ChannelCardProps) {
   const pct = nowPlaying ? epgProgress(nowPlaying) : null
 
   return (
     <Link
       to={`/channels/${id}`}
-      className="group flex flex-col bg-gray-800 rounded-2xl overflow-hidden transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/60 min-w-[300px] shrink-0"
+      style={{ width: compact ? '200px' : '260px', flexShrink: 0 }}
+      className="group flex flex-col bg-gray-800 rounded-2xl overflow-hidden transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/60"
     >
-      <div className="relative aspect-video bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
-        {/* Logo — always visible */}
+      <div className="relative aspect-video bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center overflow-hidden">
         {logoUrl
           ? <img
-              src={logoUrl}
+              src={logoUrl.replace(/^http:\/\//i, 'https://')}
               alt={name}
               className="max-w-[80%] max-h-[70%] object-contain"
               style={{ filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.6)) drop-shadow(0 0 6px rgba(255,255,255,0.15))' }}
@@ -56,7 +54,6 @@ function ChannelCard({ id, name, logoUrl, nowPlaying }: ChannelCardProps) {
           )
         }
 
-        {/* Play button — fades in on hover so it never obscures the logo at rest */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/30">
           <div className="w-14 h-14 rounded-full bg-black/60 border border-white/30 flex items-center justify-center backdrop-blur-sm">
             <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
@@ -65,7 +62,6 @@ function ChannelCard({ id, name, logoUrl, nowPlaying }: ChannelCardProps) {
           </div>
         </div>
 
-        {/* EPG overlay */}
         {nowPlaying && (
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent px-4 pt-10 pb-3">
             <p className="text-white text-xs font-medium line-clamp-1 leading-snug">{nowPlaying.title}</p>
@@ -84,6 +80,64 @@ function ChannelCard({ id, name, logoUrl, nowPlaying }: ChannelCardProps) {
         }
       </div>
     </Link>
+  )
+}
+
+function ScrollRow({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [canLeft, setCanLeft] = useState(false)
+  const [canRight, setCanRight] = useState(false)
+
+  function sync() {
+    const el = ref.current
+    if (!el) return
+    setCanLeft(el.scrollLeft > 4)
+    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4)
+  }
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    sync()
+    el.addEventListener('scroll', sync, { passive: true })
+    const ro = new ResizeObserver(sync)
+    ro.observe(el)
+    return () => { el.removeEventListener('scroll', sync); ro.disconnect() }
+  }, [])
+
+  useEffect(() => { sync() })
+
+  function scroll(dir: 'left' | 'right') {
+    ref.current?.scrollBy({ left: dir === 'left' ? -820 : 820, behavior: 'smooth' })
+  }
+
+  return (
+    <div className="relative">
+      {canLeft && (
+        <button
+          onClick={() => scroll('left')}
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 w-9 h-9 flex items-center justify-center bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-full text-white shadow-xl transition-colors"
+          aria-label="Scroll left"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        </button>
+      )}
+      <div
+        ref={ref}
+        className="flex gap-3 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+      >
+        {children}
+      </div>
+      {canRight && (
+        <button
+          onClick={() => scroll('right')}
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 w-9 h-9 flex items-center justify-center bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-full text-white shadow-xl transition-colors"
+          aria-label="Scroll right"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -111,6 +165,12 @@ function StatCard({ label, value }: { label: string; value: number }) {
 
 export default function HomePage() {
   const { user, isAdmin } = useAuth()
+  const queryClient = useQueryClient()
+
+  const removeHistory = useMutation({
+    mutationFn: (id: number) => userApi.deleteHistoryEntry(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['history'] }),
+  })
 
   const { data: historyData } = useQuery({
     queryKey: ['history', 1, 20],
@@ -122,15 +182,16 @@ export default function HomePage() {
     queryFn: userApi.getFavorites,
   })
 
-  const { data: userStats } = useQuery({
-    queryKey: ['user-stats'],
-    queryFn: userApi.getStats,
-  })
 
   const { data: nowPlaying = [] } = useQuery({
     queryKey: ['epg-now'],
     queryFn: epgApi.getAllNowPlaying,
     refetchInterval: 60_000,
+  })
+
+  const { data: newlyAdded = [] } = useQuery({
+    queryKey: ['channels-recent'],
+    queryFn: () => channelsApi.getRecent(20),
   })
 
   const { data: dashStats } = useQuery({
@@ -153,23 +214,16 @@ export default function HomePage() {
 
   const recentChannels = useMemo(() => {
     const seen = new Set<number>()
-    const result: { channelId: number; channelName: string; channelLogoUrl: string | null }[] = []
+    const result: { historyId: number; channelId: number; channelName: string; channelLogoUrl: string | null }[] = []
     for (const h of historyData?.items ?? []) {
       if (!seen.has(h.channelId)) {
         seen.add(h.channelId)
-        result.push({ channelId: h.channelId, channelName: h.channelName, channelLogoUrl: h.channelLogoUrl })
+        result.push({ historyId: h.id, channelId: h.channelId, channelName: h.channelName, channelLogoUrl: h.channelLogoUrl })
       }
       if (result.length >= 8) break
     }
     return result
   }, [historyData])
-
-  const favoriteIds = useMemo(() => new Set(favorites.map(f => f.id)), [favorites])
-
-  const whatsOn = useMemo(() =>
-    nowPlaying.filter(p => !favoriteIds.has(p.channelId)).slice(0, 12),
-    [nowPlaying, favoriteIds]
-  )
 
   const expiringProviders = useMemo(() => {
     const today = new Date()
@@ -184,7 +238,7 @@ export default function HomePage() {
   const hour = new Date().getHours()
   const greetingText = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const dateText = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
-  const hasContent = recentChannels.length > 0 || favorites.length > 0 || whatsOn.length > 0
+  const hasContent = recentChannels.length > 0 || favorites.length > 0 || newlyAdded.length > 0
 
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
@@ -194,36 +248,31 @@ export default function HomePage() {
         <div>
           <h1 className="text-2xl font-semibold text-white">{greetingText}, {user?.username}</h1>
           <p className="text-gray-500 text-sm mt-1">{dateText}</p>
-          {userStats && (userStats.favoriteCount > 0 || userStats.historyCount > 0) && (
-            <div className="flex gap-4 mt-2.5">
-              {userStats.favoriteCount > 0 && (
-                <span className="text-gray-600 text-xs">{userStats.favoriteCount} favorite{userStats.favoriteCount !== 1 ? 's' : ''}</span>
-              )}
-              {userStats.historyCount > 0 && (
-                <span className="text-gray-600 text-xs">{userStats.historyCount} sessions</span>
-              )}
-              {userStats.totalWatchSeconds >= 3600 && (
-                <span className="text-gray-600 text-xs">{fmtHours(userStats.totalWatchSeconds)} watched</span>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Continue Watching */}
         {recentChannels.length > 0 && (
           <section>
             <SectionHeader title="Continue Watching" to="/channels" />
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+            <ScrollRow>
               {recentChannels.map(ch => (
-                <ChannelCard
-                  key={ch.channelId}
-                  id={ch.channelId}
-                  name={ch.channelName}
-                  logoUrl={ch.channelLogoUrl}
-                  nowPlaying={nowPlayingMap.get(ch.channelId)}
-                />
+                <div key={ch.channelId} className="relative group/row" style={{ width: '260px', flexShrink: 0 }}>
+                  <ChannelCard
+                    id={ch.channelId}
+                    name={ch.channelName}
+                    logoUrl={ch.channelLogoUrl}
+                    nowPlaying={nowPlayingMap.get(ch.channelId)}
+                  />
+                  <button
+                    onClick={() => removeHistory.mutate(ch.historyId)}
+                    className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-black/60 text-gray-400 hover:text-white hover:bg-black/80 opacity-0 group-hover/row:opacity-100 transition-opacity"
+                    aria-label="Remove from continue watching"
+                  >
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                  </button>
+                </div>
               ))}
-            </div>
+            </ScrollRow>
           </section>
         )}
 
@@ -231,7 +280,7 @@ export default function HomePage() {
         {favorites.length > 0 && (
           <section>
             <SectionHeader title="Your Favorites" to="/favorites" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            <ScrollRow>
               {favorites.map(ch => (
                 <ChannelCard
                   key={ch.id}
@@ -241,25 +290,25 @@ export default function HomePage() {
                   nowPlaying={nowPlayingMap.get(ch.id)}
                 />
               ))}
-            </div>
+            </ScrollRow>
           </section>
         )}
 
-        {/* What's On Now */}
-        {whatsOn.length > 0 && (
+        {/* Recently Added */}
+        {newlyAdded.length > 0 && (
           <section>
-            <SectionHeader title="What's On Now" to="/guide" />
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
-              {whatsOn.map(prog => (
+            <SectionHeader title="Recently Added" to="/channels" />
+            <ScrollRow>
+              {newlyAdded.map(ch => (
                 <ChannelCard
-                  key={prog.channelId}
-                  id={prog.channelId}
-                  name={prog.channelName}
-                  logoUrl={prog.channelLogoUrl}
-                  nowPlaying={prog}
+                  key={ch.id}
+                  id={ch.id}
+                  name={ch.name}
+                  logoUrl={ch.logoUrl}
+                  compact
                 />
               ))}
-            </div>
+            </ScrollRow>
           </section>
         )}
 

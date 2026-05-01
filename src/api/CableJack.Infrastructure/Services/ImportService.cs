@@ -125,6 +125,7 @@ namespace CableJack.Infrastructure.Services
                         IsActive = true,
                         SortOrder = channelsByName.Count,
                         HasSources = providerId.HasValue, // Set true if importing with a provider
+                        CreatedAt = DateTime.UtcNow,
                     };
                     db.Channels.Add(channel);
 
