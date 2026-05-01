@@ -34,6 +34,7 @@ namespace CableJack.Infrastructure.Services
                 Username = request.Username,
                 Password = request.Password,
                 MaxConcurrentStreams = request.MaxConcurrentStreams,
+                ExpiresAt = request.ExpiresAt,
             };
 
             db.Providers.Add(provider);
@@ -51,6 +52,7 @@ namespace CableJack.Infrastructure.Services
             if (request.Username is not null) provider.Username = request.Username;
             if (request.Password is not null) provider.Password = request.Password;
             if (request.MaxConcurrentStreams is not null) provider.MaxConcurrentStreams = request.MaxConcurrentStreams.Value;
+            if (request.ExpiresAt is not null) provider.ExpiresAt = request.ExpiresAt;
 
             await db.SaveChangesAsync();
             return ToResponse(provider);
@@ -74,6 +76,7 @@ namespace CableJack.Infrastructure.Services
             Username = p.Username,
             Password = p.Password,
             MaxConcurrentStreams = p.MaxConcurrentStreams,
+            ExpiresAt = p.ExpiresAt,
         };
     }
 }

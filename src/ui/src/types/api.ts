@@ -36,6 +36,8 @@ export interface ProviderResponse {
   baseUrl: string | null
   username: string | null
   password: string | null
+  maxConcurrentStreams: number
+  expiresAt: string | null
 }
 
 export interface ChannelResponse {

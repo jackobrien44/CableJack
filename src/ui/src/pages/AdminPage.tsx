@@ -1442,6 +1442,15 @@ function ProvidersTab() {
                 <p className="text-white font-medium">{p.name}</p>
                 {p.baseUrl && <p className="text-gray-400 text-xs truncate">{p.baseUrl}</p>}
                 {p.username && <p className="text-gray-500 text-xs">User: {p.username}</p>}
+                {p.expiresAt && (() => {
+                  const expires = new Date(p.expiresAt)
+                  const today = new Date()
+                  today.setHours(0, 0, 0, 0)
+                  const daysLeft = Math.ceil((expires.getTime() - today.getTime()) / 86400000)
+                  const cls = daysLeft < 0 ? 'text-red-400' : daysLeft <= 7 ? 'text-amber-400' : 'text-gray-500'
+                  const label = daysLeft < 0 ? 'Expired' : daysLeft === 0 ? 'Expires today' : `Expires ${expires.toLocaleDateString()}`
+                  return <p className={`text-xs ${cls}`}>{label}</p>
+                })()}
               </div>
               <div className="flex flex-wrap gap-2 shrink-0">
                 {p.baseUrl && p.username && p.password && (
@@ -1539,6 +1548,7 @@ function ProviderForm({ initial, loading, error, onSubmit, onCancel }: ProviderF
   const [baseUrl, setBaseUrl] = useState(initial?.baseUrl ?? '')
   const [username, setUsername] = useState(initial?.username ?? '')
   const [password, setPassword] = useState(initial?.password ?? '')
+  const [expiresAt, setExpiresAt] = useState(initial?.expiresAt ?? '')
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -1547,6 +1557,7 @@ function ProviderForm({ initial, loading, error, onSubmit, onCancel }: ProviderF
       baseUrl: baseUrl || undefined,
       username: username || undefined,
       password: password || undefined,
+      expiresAt: expiresAt || undefined,
     })
   }
 
@@ -1570,6 +1581,10 @@ function ProviderForm({ initial, loading, error, onSubmit, onCancel }: ProviderF
       <div>
         <label className="block text-xs text-gray-400 mb-1">Password</label>
         <input value={password} onChange={e => setPassword(e.target.value)} placeholder="password" className={inputCls} />
+      </div>
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Expiration Date</label>
+        <input type="date" value={expiresAt} onChange={e => setExpiresAt(e.target.value)} className={inputCls} />
       </div>
       {error && <p className="text-red-400 text-sm">{error}</p>}
       <div className="flex gap-2 pt-1">

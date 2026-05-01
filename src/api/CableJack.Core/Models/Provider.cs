@@ -8,6 +8,7 @@ namespace CableJack.Core.Models
         public string? Username { get; set; }
         public string? Password { get; set; }
         public required int MaxConcurrentStreams { get; set; }
+        public DateOnly? ExpiresAt { get; set; }
 
         public ICollection<ChannelSource> Sources { get; set; } = [];
     }

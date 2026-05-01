@@ -6,6 +6,7 @@ export interface CreateProviderRequest {
   baseUrl?: string
   username?: string
   password?: string
+  expiresAt?: string
 }
 
 export interface UpdateProviderRequest {
@@ -13,6 +14,7 @@ export interface UpdateProviderRequest {
   baseUrl?: string
   username?: string
   password?: string
+  expiresAt?: string
 }
 
 export const providersApi = {
