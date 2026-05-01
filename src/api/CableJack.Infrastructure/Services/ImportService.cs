@@ -79,17 +79,34 @@ namespace CableJack.Infrastructure.Services
                     result.CategoriesCreated++;
                 }
 
-                // Match existing channel: TvgId first, then exact case-insensitive name
+                // Match existing channel: name first, then fall back to TvgId only when names also agree.
+                // TvgId alone is not a unique channel key — multiple distinct channels (e.g. "ABC" and
+                // "CA: ABC EAST") can share the same tvg-id because they carry the same broadcast source
+                // but represent different offerings. Requiring a name match prevents them from collapsing.
                 Channel? channel = null;
-                if (tvgId is { Length: > 0 }) channelsByTvgId.TryGetValue(tvgId, out channel);
-                if (channel is null) channelsByName.TryGetValue(name.Trim(), out channel);
+                channelsByName.TryGetValue(name.Trim(), out channel);
+                if (channel is null && tvgId is { Length: > 0 } && channelsByTvgId.TryGetValue(tvgId, out var tvgMatch))
+                {
+                    if (string.Equals(tvgMatch.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase))
+                        channel = tvgMatch;
+                }
 
                 if (channel is not null)
                 {
-                    channel.Name = name;
+                    // Don't overwrite existing channel properties — preserve them to avoid losing "ABC" data
+                    // Only update logo (safe metadata)
                     channel.LogoUrl = logoUrl;
-                    channel.Category = category;
-                    if (tvgId is { Length: > 0 }) channel.TvgId = tvgId;
+                    // Note: Do NOT update Name or Category for existing channels — they should be set once and preserved
+                    // Only set TvgId if this is a new match (channel didn't have one before)
+                    if (tvgId is { Length: > 0 } && string.IsNullOrEmpty(channel.TvgId))
+                    {
+                        channel.TvgId = tvgId;
+                    }
+
+                    // If importing with a provider and channel doesn't have sources yet, mark it as having sources
+                    if (providerId.HasValue && !channel.HasSources)
+                        channel.HasSources = true;
+
                     result.ChannelsUpdated++;
                 }
                 else
@@ -105,7 +122,7 @@ namespace CableJack.Infrastructure.Services
                         CategoryId = 0,
                         IsActive = true,
                         SortOrder = channelsByName.Count,
-                        HasSources = false,
+                        HasSources = providerId.HasValue, // Set true if importing with a provider
                     };
                     db.Channels.Add(channel);
 
@@ -121,6 +138,9 @@ namespace CableJack.Infrastructure.Services
                         if (skipExisting)
                         {
                             result.ChannelsSkipped++;
+                            // Still mark channel as having sources since it exists
+                            if (!channel.HasSources)
+                                channel.HasSources = true;
                             continue;
                         }
 
