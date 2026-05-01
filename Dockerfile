@@ -4,7 +4,8 @@ WORKDIR /ui
 COPY src/ui/package*.json ./
 RUN npm ci
 COPY src/ui/ ./
-RUN npm run build
+ARG VITE_APP_VERSION=dev
+RUN VITE_APP_VERSION=$VITE_APP_VERSION npm run build
 
 # ── Stage 2: Build .NET API ──────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api-build
