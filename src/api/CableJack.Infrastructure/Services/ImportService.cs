@@ -104,6 +104,7 @@ namespace CableJack.Infrastructure.Services
                         CategoryId = category.Id,
                         IsActive = true,
                         SortOrder = channelsByName.Count,
+                        HasSources = false,
                     };
                     db.Channels.Add(channel);
                     await db.SaveChangesAsync();
@@ -112,6 +113,10 @@ namespace CableJack.Infrastructure.Services
                     channelsByName[NormalizeName(name)] = channel;
                     result.ChannelsCreated++;
                 }
+
+                // Mark the channel as having sources once a source is linked
+                if (providerId.HasValue && !channel.HasSources)
+                    channel.HasSources = true;
 
                 // Link the provider source URL to this channel
                 if (providerId.HasValue)

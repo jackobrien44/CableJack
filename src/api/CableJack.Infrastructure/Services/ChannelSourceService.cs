@@ -37,6 +37,10 @@ namespace CableJack.Infrastructure.Services
 
             db.ChannelSources.Add(source);
             await db.SaveChangesAsync();
+
+            await db.Channels.Where(c => c.Id == channelId)
+                .ExecuteUpdateAsync(s => s.SetProperty(c => c.HasSources, true));
+
             await db.Entry(source).Reference(cs => cs.Provider).LoadAsync();
 
             return ToResponse(source);
@@ -65,6 +69,11 @@ namespace CableJack.Infrastructure.Services
 
             db.ChannelSources.Remove(source);
             await db.SaveChangesAsync();
+
+            var stillHasSources = await db.ChannelSources.AnyAsync(cs => cs.ChannelId == channelId);
+            await db.Channels.Where(c => c.Id == channelId)
+                .ExecuteUpdateAsync(s => s.SetProperty(c => c.HasSources, stillHasSources));
+
             return true;
         }
 

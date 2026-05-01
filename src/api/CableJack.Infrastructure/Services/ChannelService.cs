@@ -17,7 +17,7 @@ namespace CableJack.Infrastructure.Services
                 .AsQueryable();
 
             if (!includeInactive)
-                query = query.Where(c => c.IsActive);
+                query = query.Where(c => c.IsActive && c.HasSources);
 
             if (categoryId is not null)
                 query = query.Where(c => c.CategoryId == categoryId);
@@ -56,6 +56,7 @@ namespace CableJack.Infrastructure.Services
                 CategoryId = request.CategoryId,
                 IsActive = request.IsActive,
                 SortOrder = request.SortOrder,
+                HasSources = false,
             };
 
             db.Channels.Add(channel);
