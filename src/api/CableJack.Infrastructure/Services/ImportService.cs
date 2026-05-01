@@ -23,15 +23,18 @@ namespace CableJack.Infrastructure.Services
                 Errors = [],
             };
 
-            // Cache existing data for the duration of the import
             var categories = await db.Categories.ToDictionaryAsync(c => c.Name, StringComparer.OrdinalIgnoreCase);
-            var channelsByTvgId = await db.Channels
-                .Where(c => c.TvgId != null && c.TvgId != string.Empty)
-                .ToDictionaryAsync(c => c.TvgId!, StringComparer.OrdinalIgnoreCase);
-            var channelsByName = await db.Channels
-                .ToDictionaryAsync(c => NormalizeName(c.Name), StringComparer.OrdinalIgnoreCase);
 
-            // Track existing ChannelSource URLs for this provider to detect duplicates
+            // Build channel lookup dictionaries — TryAdd handles any pre-existing duplicates
+            var channelsByTvgId = new Dictionary<string, Channel>(StringComparer.OrdinalIgnoreCase);
+            var channelsByName = new Dictionary<string, Channel>(StringComparer.OrdinalIgnoreCase);
+            foreach (var ch in await db.Channels.ToListAsync())
+            {
+                if (ch.TvgId is { Length: > 0 })
+                    channelsByTvgId.TryAdd(ch.TvgId, ch);
+                channelsByName.TryAdd(ch.Name.Trim(), ch);
+            }
+
             var existingSourceUrls = providerId.HasValue
                 ? await db.ChannelSources
                     .Where(cs => cs.ProviderId == providerId.Value)
@@ -62,7 +65,7 @@ namespace CableJack.Infrastructure.Services
                     continue;
                 }
 
-                // Resolve or create category
+                // Resolve or create category — use nav prop so no intermediate save needed
                 if (!categories.TryGetValue(groupTitle, out var category))
                 {
                     category = new Category
@@ -72,49 +75,45 @@ namespace CableJack.Infrastructure.Services
                         SortOrder = categories.Count,
                     };
                     db.Categories.Add(category);
-                    await db.SaveChangesAsync();
                     categories[groupTitle] = category;
                     result.CategoriesCreated++;
                 }
 
-                // Match existing channel: TvgId first, then normalized name
+                // Match existing channel: TvgId first, then exact case-insensitive name
                 Channel? channel = null;
-                var matchedByTvgId = tvgId is not null && channelsByTvgId.TryGetValue(tvgId, out channel);
-                if (!matchedByTvgId)
-                    channelsByName.TryGetValue(NormalizeName(name), out channel);
+                if (tvgId is { Length: > 0 }) channelsByTvgId.TryGetValue(tvgId, out channel);
+                if (channel is null) channelsByName.TryGetValue(name.Trim(), out channel);
 
                 if (channel is not null)
                 {
-                    // Update channel metadata from the import
                     channel.Name = name;
                     channel.LogoUrl = logoUrl;
-                    channel.CategoryId = category.Id;
-                    if (tvgId is not null) channel.TvgId = tvgId;
+                    channel.Category = category;
+                    if (tvgId is { Length: > 0 }) channel.TvgId = tvgId;
                     result.ChannelsUpdated++;
                 }
                 else
                 {
-                    // New channel — create the logical channel record
+                    // New channel — use nav prop for Category so EF handles save ordering
                     channel = new Channel
                     {
                         Id = 0,
                         Name = name,
                         TvgId = tvgId,
                         LogoUrl = logoUrl,
-                        CategoryId = category.Id,
+                        Category = category,
+                        CategoryId = 0,
                         IsActive = true,
                         SortOrder = channelsByName.Count,
                         HasSources = false,
                     };
                     db.Channels.Add(channel);
-                    await db.SaveChangesAsync();
 
-                    if (tvgId is not null && tvgId.Length > 0) channelsByTvgId[tvgId] = channel;
-                    channelsByName[NormalizeName(name)] = channel;
+                    if (tvgId is { Length: > 0 }) channelsByTvgId.TryAdd(tvgId, channel);
+                    channelsByName.TryAdd(name.Trim(), channel);
                     result.ChannelsCreated++;
                 }
 
-                // Link the provider source URL to this channel
                 if (providerId.HasValue)
                 {
                     if (existingSourceUrls.Contains(url))
@@ -125,19 +124,21 @@ namespace CableJack.Infrastructure.Services
                             continue;
                         }
 
-                        // Re-link the existing source to the matched channel (handles channel merges)
+                        // Re-link the existing source to the matched channel
                         var existing = await db.ChannelSources
                             .FirstOrDefaultAsync(cs => cs.ProviderId == providerId.Value && cs.SourceUrl == url);
                         if (existing is not null)
-                            existing.ChannelId = channel.Id;
+                            existing.Channel = channel;
 
                         result.SourcesLinked++;
                     }
                     else
                     {
+                        // Use Channel nav prop so EF inserts Channel before ChannelSource
                         db.ChannelSources.Add(new ChannelSource
                         {
                             Id = 0,
+                            Channel = channel,
                             ChannelId = channel.Id,
                             ProviderId = providerId.Value,
                             SourceUrl = url,
@@ -147,7 +148,6 @@ namespace CableJack.Infrastructure.Services
                         result.SourcesLinked++;
                     }
 
-                    // Only flag HasSources after a source is confirmed linked or re-linked
                     if (!channel.HasSources)
                         channel.HasSources = true;
                 }
@@ -176,13 +176,6 @@ namespace CableJack.Infrastructure.Services
         {
             var comma = extinf.LastIndexOf(',');
             return comma >= 0 ? extinf[(comma + 1)..].Trim() : string.Empty;
-        }
-
-        private static string NormalizeName(string name)
-        {
-            // Strip common quality suffixes so "BBC ONE HD" matches "BBC One"
-            var normalized = Regex.Replace(name, @"\s+(HD|FHD|4K|SD|UHD|FHD)\s*$", string.Empty, RegexOptions.IgnoreCase);
-            return normalized.Trim().ToLowerInvariant();
         }
     }
 }
