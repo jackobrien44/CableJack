@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
 import { ChannelRow } from '../components/ChannelRow'
@@ -9,6 +9,12 @@ const PAGE_SIZE = 50
 export default function FavoritesPage() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
+  const listRef = useRef<HTMLDivElement>(null)
+
+  function goToPage(p: number) {
+    setPage(p)
+    listRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const { data: favorites, isLoading } = useQuery({
     queryKey: ['favorites'],
@@ -38,7 +44,7 @@ export default function FavoritesPage() {
       )}
 
       {!!all.length && (
-        <div className="flex-1 min-h-0 overflow-y-auto pb-3">
+        <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto pb-3">
           <div className="flex flex-col gap-1.5">
             {slice.map(channel => (
               <ChannelRow
@@ -56,15 +62,15 @@ export default function FavoritesPage() {
 
       {totalPages > 1 && (
         <div className="py-3 flex items-center justify-center gap-0.5 sm:gap-1 shrink-0">
-          <PageButton onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}>‹</PageButton>
+          <PageButton onClick={() => goToPage(Math.max(1, safePage - 1))} disabled={safePage === 1}>‹</PageButton>
           {pageNumbers(safePage, totalPages).map((p, i) =>
             p === '…' ? (
               <span key={`ellipsis-${i}`} className="px-2 text-gray-600">…</span>
             ) : (
-              <PageButton key={p} onClick={() => setPage(p as number)} active={p === safePage}>{p}</PageButton>
+              <PageButton key={p} onClick={() => goToPage(p as number)} active={p === safePage}>{p}</PageButton>
             )
           )}
-          <PageButton onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}>›</PageButton>
+          <PageButton onClick={() => goToPage(Math.min(totalPages, safePage + 1))} disabled={safePage === totalPages}>›</PageButton>
         </div>
       )}
     </div>
