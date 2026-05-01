@@ -38,7 +38,7 @@ function ChannelCard({ id, name, logoUrl, nowPlaying, compact }: ChannelCardProp
       style={{ width: compact ? '200px' : '260px', flexShrink: 0 }}
       className="group flex flex-col bg-gray-800 rounded-2xl overflow-hidden transition-all duration-200 hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/60"
     >
-      <div className="relative aspect-video bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
+      <div className="relative aspect-video bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center overflow-hidden">
         {logoUrl
           ? <img
               src={logoUrl}
@@ -225,13 +225,6 @@ export default function HomePage() {
     return result
   }, [historyData])
 
-  const favoriteIds = useMemo(() => new Set(favorites.map(f => f.id)), [favorites])
-
-  const whatsOn = useMemo(() =>
-    nowPlaying.filter(p => !favoriteIds.has(p.channelId)).slice(0, 20),
-    [nowPlaying, favoriteIds]
-  )
-
   const expiringProviders = useMemo(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -245,7 +238,7 @@ export default function HomePage() {
   const hour = new Date().getHours()
   const greetingText = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const dateText = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
-  const hasContent = recentChannels.length > 0 || favorites.length > 0 || whatsOn.length > 0 || newlyAdded.length > 0
+  const hasContent = recentChannels.length > 0 || favorites.length > 0 || newlyAdded.length > 0
 
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
@@ -301,25 +294,6 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* What's On Now */}
-        {whatsOn.length > 0 && (
-          <section>
-            <SectionHeader title="What's On Now" to="/guide" />
-            <ScrollRow>
-              {whatsOn.map(prog => (
-                <ChannelCard
-                  key={prog.channelId}
-                  id={prog.channelId}
-                  name={prog.channelName}
-                  logoUrl={prog.channelLogoUrl}
-                  nowPlaying={prog}
-                  compact
-                />
-              ))}
-            </ScrollRow>
-          </section>
-        )}
-
         {/* Recently Added */}
         {newlyAdded.length > 0 && (
           <section>
@@ -331,7 +305,6 @@ export default function HomePage() {
                   id={ch.id}
                   name={ch.name}
                   logoUrl={ch.logoUrl}
-                  nowPlaying={nowPlayingMap.get(ch.id)}
                   compact
                 />
               ))}
