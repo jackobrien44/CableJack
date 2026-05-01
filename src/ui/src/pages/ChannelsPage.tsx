@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
@@ -6,13 +6,11 @@ import { channelsApi } from '../api/channels'
 import { categoriesApi } from '../api/categories'
 import { providersApi } from '../api/providers'
 import { userApi } from '../api/user'
-import { ChannelCard } from '../components/ChannelCard'
+import { ChannelRow } from '../components/ChannelRow'
 import { useStartStream } from '../hooks/useStartStream'
 import type { ChannelResponse } from '../types/api'
 
-const MIN_CARD_W = 220
-const MIN_CARD_H = 240
-const GAP = 12
+const PAGE_SIZE = 50
 
 export default function ChannelsPage() {
   const queryClient = useQueryClient()
@@ -26,10 +24,6 @@ export default function ChannelsPage() {
   const [inputValue, setInputValue] = useState(search)
   const [showCategories, setShowCategories] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [gridEl, setGridEl] = useState<HTMLDivElement | null>(null)
-  const [gridDims, setGridDims] = useState({ cols: 6, rows: 4 })
-  const [isMobile, setIsMobile] = useState(false)
-  const pageSize = isMobile ? 20 : gridDims.cols * gridDims.rows
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
@@ -42,8 +36,8 @@ export default function ChannelsPage() {
   })
 
   const { data, isLoading } = useQuery({
-    queryKey: ['channels', search, categoryId, providerId, page, pageSize],
-    queryFn: () => channelsApi.getAll({ page, pageSize, search: search || undefined, categoryId, providerId }),
+    queryKey: ['channels', search, categoryId, providerId, page, PAGE_SIZE],
+    queryFn: () => channelsApi.getAll({ page, pageSize: PAGE_SIZE, search: search || undefined, categoryId, providerId }),
   })
 
   const { data: favorites } = useQuery({
@@ -106,24 +100,7 @@ export default function ChannelsPage() {
   }
 
   const channels = data?.items ?? []
-  const totalPages = data ? Math.ceil(data.totalCount / pageSize) : 1
-
-  useEffect(() => {
-    if (!gridEl) return
-    const ro = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect
-      if (width < 640) {
-        setIsMobile(true)
-      } else {
-        setIsMobile(false)
-        const cols = Math.max(1, Math.floor((width + GAP) / (MIN_CARD_W + GAP)))
-        const rows = Math.max(1, Math.floor((height + GAP) / (MIN_CARD_H + GAP)))
-        setGridDims(prev => prev.cols === cols && prev.rows === rows ? prev : { cols, rows })
-      }
-    })
-    ro.observe(gridEl)
-    return () => ro.disconnect()
-  }, [gridEl])
+  const totalPages = data ? Math.ceil(data.totalCount / PAGE_SIZE) : 1
   const categories = categoriesData?.items ?? []
   const providers = providersData ?? []
 
@@ -201,20 +178,10 @@ export default function ChannelsPage() {
       )}
 
       {channels.length > 0 && (
-        <div ref={setGridEl} className={`flex-1 min-h-0 ${isMobile ? 'overflow-y-auto pb-3' : 'overflow-hidden'}`}>
-          <div
-            className="grid gap-3"
-            style={isMobile ? {
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gridAutoRows: '160px',
-            } : {
-              height: '100%',
-              gridTemplateColumns: `repeat(${gridDims.cols}, 1fr)`,
-              gridTemplateRows: `repeat(${gridDims.rows}, 1fr)`,
-            }}
-          >
+        <div className="flex-1 min-h-0 overflow-y-auto pb-3">
+          <div className="flex flex-col gap-1.5">
             {channels.map(channel => (
-              <ChannelCard
+              <ChannelRow
                 key={channel.id}
                 channel={channel}
                 isFavorite={favoriteIds.has(channel.id)}

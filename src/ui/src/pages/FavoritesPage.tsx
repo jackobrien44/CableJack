@@ -1,18 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
-import { ChannelCard } from '../components/ChannelCard'
+import { ChannelRow } from '../components/ChannelRow'
 import { useStartStream } from '../hooks/useStartStream'
 
-const MIN_CARD_W = 220
-const MIN_CARD_H = 240
-const GAP = 12
+const PAGE_SIZE = 50
 
 export default function FavoritesPage() {
   const queryClient = useQueryClient()
-  const [gridEl, setGridEl] = useState<HTMLDivElement | null>(null)
-  const [gridDims, setGridDims] = useState({ cols: 6, rows: 4 })
-  const [isMobile, setIsMobile] = useState(false)
   const [page, setPage] = useState(1)
 
   const { data: favorites, isLoading } = useQuery({
@@ -27,29 +22,10 @@ export default function FavoritesPage() {
 
   const startStream = useStartStream()
 
-  useEffect(() => {
-    if (!gridEl) return
-    const ro = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect
-      if (width < 640) {
-        setIsMobile(true)
-      } else {
-        setIsMobile(false)
-        const cols = Math.max(2, Math.floor((width + GAP) / (MIN_CARD_W + GAP)))
-        const rows = Math.max(1, Math.floor((height + GAP) / (MIN_CARD_H + GAP)))
-        setGridDims(prev => prev.cols === cols && prev.rows === rows ? prev : { cols, rows })
-        setPage(1)
-      }
-    })
-    ro.observe(gridEl)
-    return () => ro.disconnect()
-  }, [gridEl])
-
-  const pageSize = isMobile ? 20 : gridDims.cols * gridDims.rows
   const all = favorites ?? []
-  const totalPages = Math.max(1, Math.ceil(all.length / pageSize))
+  const totalPages = Math.max(1, Math.ceil(all.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
-  const slice = all.slice((safePage - 1) * pageSize, safePage * pageSize)
+  const slice = all.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   if (isLoading) return <div className="p-6 text-gray-400 text-sm">Loading…</div>
 
@@ -62,20 +38,10 @@ export default function FavoritesPage() {
       )}
 
       {!!all.length && (
-        <div ref={setGridEl} className={`flex-1 min-h-0 ${isMobile ? 'overflow-y-auto pb-3' : 'overflow-hidden pb-3'}`}>
-          <div
-            className="grid gap-3"
-            style={isMobile ? {
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gridAutoRows: '160px',
-            } : {
-              height: '100%',
-              gridTemplateColumns: `repeat(${gridDims.cols}, 1fr)`,
-              gridTemplateRows: `repeat(${gridDims.rows}, 1fr)`,
-            }}
-          >
+        <div className="flex-1 min-h-0 overflow-y-auto pb-3">
+          <div className="flex flex-col gap-1.5">
             {slice.map(channel => (
-              <ChannelCard
+              <ChannelRow
                 key={channel.id}
                 channel={channel}
                 isFavorite={true}

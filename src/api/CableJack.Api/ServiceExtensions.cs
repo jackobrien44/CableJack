@@ -27,6 +27,7 @@ public static class ServiceExtensions
         services.AddScoped<IStreamService, StreamService>();
         services.AddSingleton<IFFmpegService, FFmpegService>();
         services.AddHostedService<TokenCleanupService>();
+        services.AddHostedService<EpgRefreshService>();
         services.AddScoped<IImportService, ImportService>();
         services.AddScoped<IEpgService, EpgService>();
         services.AddScoped<IProviderService, ProviderService>();
