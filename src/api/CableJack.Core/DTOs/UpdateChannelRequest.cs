@@ -12,7 +12,6 @@ namespace CableJack.Core.DTOs
         [MaxLength(500)]
         public string? Description { get; set; }
 
-        public string? SourceUrl { get; set; }
         public string? LogoUrl { get; set; }
         public int? CategoryId { get; set; }
         public bool? IsActive { get; set; }

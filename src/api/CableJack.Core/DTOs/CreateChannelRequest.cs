@@ -13,9 +13,6 @@ namespace CableJack.Core.DTOs
         [MaxLength(500)]
         public string? Description { get; set; }
 
-        [Required]
-        public required string SourceUrl { get; set; }
-
         public string? LogoUrl { get; set; }
 
         [Required]

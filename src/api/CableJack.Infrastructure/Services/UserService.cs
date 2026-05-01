@@ -136,20 +136,9 @@ namespace CableJack.Infrastructure.Services
             return await db.UserFavorites
                 .Where(f => f.UserId == userId)
                 .Include(f => f.Channel).ThenInclude(c => c.Category)
+                .Include(f => f.Channel).ThenInclude(c => c.Sources).ThenInclude(s => s.Provider)
                 .OrderBy(f => f.Channel.SortOrder)
-                .Select(f => new ChannelResponse
-                {
-                    Id = f.Channel.Id,
-                    Name = f.Channel.Name,
-                    TvgId = f.Channel.TvgId,
-                    Description = f.Channel.Description,
-                    SourceUrl = f.Channel.SourceUrl,
-                    LogoUrl = f.Channel.LogoUrl,
-                    CategoryId = f.Channel.CategoryId,
-                    CategoryName = f.Channel.Category.Name,
-                    IsActive = f.Channel.IsActive,
-                    SortOrder = f.Channel.SortOrder,
-                })
+                .Select(f => ChannelService.ToResponse(f.Channel))
                 .ToListAsync();
         }
 
