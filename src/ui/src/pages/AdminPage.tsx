@@ -1042,16 +1042,13 @@ function DashboardTab() {
           : (
             <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead><tr className="border-b border-gray-700">
-                <Th>Username</Th><Th right>Live</Th><Th right>Sessions</Th><Th right>Watch time</Th><Th right>Last login</Th><Th right>Joined</Th>
+                <Th>Username</Th><Th>Status</Th><Th right>Sessions</Th><Th right>Watch time</Th><Th right>Last login</Th><Th right>Joined</Th>
               </tr></thead>
               <tbody className="divide-y divide-gray-700">
                 {userStats.map((u: UserStatDto) => (
                   <tr key={u.userId} className="hover:bg-gray-750">
-                    <Td>
-                      <span className={u.isActive ? 'text-white font-medium' : 'text-gray-500 font-medium'}>{u.username}</span>
-                      {!u.isActive && <span className="ml-2 text-xs text-red-400">disabled</span>}
-                    </Td>
-                    <Td right>{u.activeStreams > 0 ? <span className="text-green-400 font-medium">{u.activeStreams}</span> : <span className="text-gray-500">—</span>}</Td>
+                    <Td><span className="text-white font-medium">{u.username}</span></Td>
+                    <Td>{u.isActive ? <span className="text-green-400 text-xs font-medium">Active</span> : <span className="text-red-400 text-xs font-medium">Disabled</span>}</Td>
                     <Td right>{u.totalSessions}</Td>
                     <Td right>{fmtMinutes(u.totalMinutes)}</Td>
                     <Td right>{fmtRelative(u.lastLoginAt, userStatsUpdatedAt)}</Td>
