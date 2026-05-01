@@ -23,14 +23,20 @@ jobs:
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
 
+          REPO_URL="https://github.com/jackobrien44/CableJack"
+
+          link_prs() {
+            sed -E "s|\(#([0-9]+)\)|([#\1](${REPO_URL}/pull/\1))|g"
+          }
+
           if [ -z "$PREV_TAG" ]; then
             echo "## What's Changed" > notes.md
             echo "" >> notes.md
-            git log HEAD --pretty=format:"- %s (%h)" --reverse >> notes.md
+            git log HEAD --pretty=format:"- %s (%h)" --reverse | link_prs >> notes.md
           else
             echo "## What's Changed since ${PREV_TAG}" > notes.md
             echo "" >> notes.md
-            git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --reverse >> notes.md
+            git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --reverse | link_prs >> notes.md
           fi
 
       - name: Create release

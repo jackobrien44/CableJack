@@ -58,6 +58,7 @@ namespace CableJack.Infrastructure.Services
                 var groupTitle = ParseAttribute(line, "group-title") ?? "Uncategorized";
                 var tvgId = ParseAttribute(line, "tvg-id");
                 var logoUrl = ParseAttribute(line, "tvg-logo");
+                var description = ParseAttribute(line, "tvg-description");
 
                 if (string.IsNullOrWhiteSpace(name))
                 {
@@ -93,9 +94,9 @@ namespace CableJack.Infrastructure.Services
 
                 if (channel is not null)
                 {
-                    // Don't overwrite existing channel properties — preserve them to avoid losing "ABC" data
-                    // Only update logo (safe metadata)
                     channel.LogoUrl = logoUrl;
+                    if (description is { Length: > 0 } && string.IsNullOrEmpty(channel.Description))
+                        channel.Description = description;
                     // Note: Do NOT update Name or Category for existing channels — they should be set once and preserved
                     // Only set TvgId if this is a new match (channel didn't have one before)
                     if (tvgId is { Length: > 0 } && string.IsNullOrEmpty(channel.TvgId))
@@ -117,6 +118,7 @@ namespace CableJack.Infrastructure.Services
                         Id = 0,
                         Name = name,
                         TvgId = tvgId,
+                        Description = description,
                         LogoUrl = logoUrl,
                         Category = category,
                         CategoryId = 0,
