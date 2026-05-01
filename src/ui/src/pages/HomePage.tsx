@@ -20,10 +20,6 @@ function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-function fmtHours(seconds: number) {
-  const h = Math.floor(seconds / 3600)
-  return h === 1 ? '1 hr' : `${h} hrs`
-}
 
 interface ChannelCardProps {
   id: number
@@ -186,10 +182,6 @@ export default function HomePage() {
     queryFn: userApi.getFavorites,
   })
 
-  const { data: userStats } = useQuery({
-    queryKey: ['user-stats'],
-    queryFn: userApi.getStats,
-  })
 
   const { data: nowPlaying = [] } = useQuery({
     queryKey: ['epg-now'],
@@ -263,19 +255,6 @@ export default function HomePage() {
         <div>
           <h1 className="text-2xl font-semibold text-white">{greetingText}, {user?.username}</h1>
           <p className="text-gray-500 text-sm mt-1">{dateText}</p>
-          {userStats && (userStats.favoriteCount > 0 || userStats.historyCount > 0) && (
-            <div className="flex gap-4 mt-2.5">
-              {userStats.favoriteCount > 0 && (
-                <span className="text-gray-600 text-xs">{userStats.favoriteCount} favorite{userStats.favoriteCount !== 1 ? 's' : ''}</span>
-              )}
-              {userStats.historyCount > 0 && (
-                <span className="text-gray-600 text-xs">{userStats.historyCount} sessions</span>
-              )}
-              {userStats.totalWatchSeconds >= 3600 && (
-                <span className="text-gray-600 text-xs">{fmtHours(userStats.totalWatchSeconds)} watched</span>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Continue Watching */}
