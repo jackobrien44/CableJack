@@ -114,10 +114,6 @@ namespace CableJack.Infrastructure.Services
                     result.ChannelsCreated++;
                 }
 
-                // Mark the channel as having sources once a source is linked
-                if (providerId.HasValue && !channel.HasSources)
-                    channel.HasSources = true;
-
                 // Link the provider source URL to this channel
                 if (providerId.HasValue)
                 {
@@ -150,6 +146,10 @@ namespace CableJack.Infrastructure.Services
                         existingSourceUrls.Add(url);
                         result.SourcesLinked++;
                     }
+
+                    // Only flag HasSources after a source is confirmed linked or re-linked
+                    if (!channel.HasSources)
+                        channel.HasSources = true;
                 }
             }
 
