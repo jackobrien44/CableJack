@@ -856,7 +856,7 @@ function DashboardTab() {
   const { data: streamsData } = useQuery({ queryKey: ['admin-streams'], queryFn: () => adminApi.getActiveStreams(), refetchInterval: INTERVAL })
   const { data: recentHistory, dataUpdatedAt: historyUpdatedAt } = useQuery({ queryKey: ['admin-recent-history'], queryFn: adminApi.getDashboardRecentHistory, refetchInterval: INTERVAL })
   const { data: userStats, dataUpdatedAt: userStatsUpdatedAt } = useQuery({ queryKey: ['admin-user-stats'], queryFn: adminApi.getDashboardUserStats, refetchInterval: INTERVAL })
-  const { data: errorStreams } = useQuery({ queryKey: ['admin-dashboard-errors'], queryFn: adminApi.getDashboardErrors, enabled: showErrors, refetchInterval: showErrors ? INTERVAL : false })
+  const { data: errorStreams, dataUpdatedAt: errorsUpdatedAt } = useQuery({ queryKey: ['admin-dashboard-errors'], queryFn: adminApi.getDashboardErrors, enabled: showErrors, refetchInterval: showErrors ? INTERVAL : false })
 
   const stopStream = useMutation({
     mutationFn: (id: number) => adminApi.adminStopStream(id),
@@ -934,7 +934,7 @@ function DashboardTab() {
               <div className="divide-y divide-gray-700">
                 {errorStreams.map(s => {
                   const startedAt = new Date(s.startedAt)
-                  const minsAgo = Math.floor((Date.now() - startedAt.getTime()) / 60_000)
+                  const minsAgo = Math.floor((errorsUpdatedAt - startedAt.getTime()) / 60_000)
                   const timeAgo = minsAgo < 60 ? `${minsAgo}m ago` : `${Math.floor(minsAgo / 60)}h ${minsAgo % 60}m ago`
                   return (
                     <div key={s.id} className="px-5 py-3 flex items-center justify-between gap-4">

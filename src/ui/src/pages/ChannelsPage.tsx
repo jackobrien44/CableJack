@@ -24,6 +24,7 @@ export default function ChannelsPage() {
   const [inputValue, setInputValue] = useState(search)
   const [showCategories, setShowCategories] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
@@ -63,7 +64,7 @@ export default function ChannelsPage() {
       else next.set('page', String(p))
       return next
     })
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    listRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function handleSearchChange(value: string) {
@@ -178,7 +179,7 @@ export default function ChannelsPage() {
       )}
 
       {channels.length > 0 && (
-        <div className="flex-1 min-h-0 overflow-y-auto pb-3">
+        <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto pb-3">
           <div className="flex flex-col gap-1.5">
             {channels.map(channel => (
               <ChannelRow
