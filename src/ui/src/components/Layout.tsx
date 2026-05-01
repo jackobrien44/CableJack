@@ -8,7 +8,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: '/', label: 'Channels', icon: '📺' },
+  { to: '/', label: 'Home', icon: '🏠' },
+  { to: '/channels', label: 'Channels', icon: '📺' },
   { to: '/guide', label: 'TV Guide', icon: '📋' },
   { to: '/favorites', label: 'Favorites', icon: '⭐' },
   { to: '/profile', label: 'Profile', icon: '👤' },
@@ -78,7 +79,7 @@ export default function Layout() {
               to={item.to}
               label={item.label}
               icon={item.icon}
-              end={item.to === '/'}
+              end={item.to === '/' || item.to === '/channels'}
             />
           ))}
 
@@ -125,7 +126,7 @@ export default function Layout() {
             to={item.to}
             label={item.label}
             icon={item.icon}
-            end={item.to === '/'}
+            end={item.to === '/' || item.to === '/channels'}
           />
         ))}
         {isAdmin && adminItems.map(item => (

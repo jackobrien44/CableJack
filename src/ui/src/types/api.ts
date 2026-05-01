@@ -105,6 +105,7 @@ export interface ProgrammeResponse {
   id: number
   channelId: number
   channelName: string
+  channelLogoUrl: string | null
   title: string
   description: string | null
   startTime: string
@@ -115,6 +116,7 @@ export interface WatchHistoryResponse {
   id: number
   channelId: number
   channelName: string
+  channelLogoUrl: string | null
   startedAt: string
   stoppedAt: string | null
 }

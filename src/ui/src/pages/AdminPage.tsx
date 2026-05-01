@@ -1548,6 +1548,7 @@ function ProviderForm({ initial, loading, error, onSubmit, onCancel }: ProviderF
   const [baseUrl, setBaseUrl] = useState(initial?.baseUrl ?? '')
   const [username, setUsername] = useState(initial?.username ?? '')
   const [password, setPassword] = useState(initial?.password ?? '')
+  const [maxConcurrentStreams, setMaxConcurrentStreams] = useState(String(initial?.maxConcurrentStreams ?? 3))
   const [expiresAt, setExpiresAt] = useState(initial?.expiresAt ?? '')
 
   function handleSubmit(e: FormEvent) {
@@ -1557,6 +1558,7 @@ function ProviderForm({ initial, loading, error, onSubmit, onCancel }: ProviderF
       baseUrl: baseUrl || undefined,
       username: username || undefined,
       password: password || undefined,
+      maxConcurrentStreams: Number(maxConcurrentStreams),
       expiresAt: expiresAt || undefined,
     })
   }
@@ -1581,6 +1583,10 @@ function ProviderForm({ initial, loading, error, onSubmit, onCancel }: ProviderF
       <div>
         <label className="block text-xs text-gray-400 mb-1">Password</label>
         <input value={password} onChange={e => setPassword(e.target.value)} placeholder="password" className={inputCls} />
+      </div>
+      <div>
+        <label className="block text-xs text-gray-400 mb-1">Max Concurrent Streams</label>
+        <input type="number" min={1} max={100} value={maxConcurrentStreams} onChange={e => setMaxConcurrentStreams(e.target.value)} className={inputCls} />
       </div>
       <div>
         <label className="block text-xs text-gray-400 mb-1">Expiration Date</label>

@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { channelsApi } from '../api/channels'
 import { categoriesApi } from '../api/categories'
-import { providersApi } from '../api/providers'
 import { userApi } from '../api/user'
 import { ChannelRow } from '../components/ChannelRow'
 import { useStartStream } from '../hooks/useStartStream'
@@ -19,7 +18,7 @@ export default function ChannelsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const search = searchParams.get('q') ?? ''
   const categoryId = categoryIdParam ? Number(categoryIdParam) : undefined
-  const providerId = searchParams.get('provider') ? Number(searchParams.get('provider')) : undefined
+  const providerId = undefined
   const page = searchParams.get('page') ? Number(searchParams.get('page')) : 1
   const [inputValue, setInputValue] = useState(search)
   const [showCategories, setShowCategories] = useState(false)
@@ -29,11 +28,6 @@ export default function ChannelsPage() {
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
     queryFn: categoriesApi.getAll,
-  })
-
-  const { data: providersData } = useQuery({
-    queryKey: ['providers'],
-    queryFn: providersApi.getAll,
   })
 
   const { data, isLoading } = useQuery({
@@ -82,17 +76,7 @@ export default function ChannelsPage() {
   }
 
   function setCategoryId(id: number | undefined) {
-    navigate(id ? `/categories/${id}` : '/')
-  }
-
-  function setProviderId(id: number | undefined) {
-    setSearchParams(prev => {
-      const next = new URLSearchParams(prev)
-      if (id !== undefined) next.set('provider', String(id))
-      else next.delete('provider')
-      next.delete('page')
-      return next
-    }, { replace: true })
+    navigate(id ? `/categories/${id}` : '/channels')
   }
 
   function toggleFavorite(channel: ChannelResponse) {
@@ -103,25 +87,12 @@ export default function ChannelsPage() {
   const channels = data?.items ?? []
   const totalPages = data ? Math.ceil(data.totalCount / PAGE_SIZE) : 1
   const categories = categoriesData?.items ?? []
-  const providers = providersData ?? []
 
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden px-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-6 pb-4 gap-3 shrink-0">
         <h1 className="text-xl font-semibold text-white shrink-0">Channels</h1>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          {providers.length > 0 && (
-            <select
-              value={providerId ?? ''}
-              onChange={e => setProviderId(e.target.value ? Number(e.target.value) : undefined)}
-              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500 w-full sm:w-auto"
-            >
-              <option value="">All providers</option>
-              {providers.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          )}
           <input
             type="search"
             placeholder="Search channels…"
