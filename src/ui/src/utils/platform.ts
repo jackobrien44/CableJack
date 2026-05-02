@@ -1,6 +1,13 @@
 export type TVPlatform = 'tizen' | 'webos' | null
 
 function detectPlatform(): TVPlatform {
+  // Allow forcing a platform from the browser console for local testing:
+  //   localStorage.setItem('cablejack-platform', 'tizen')  → Samsung TV mode
+  //   localStorage.setItem('cablejack-platform', 'webos')  → LG TV mode
+  //   localStorage.removeItem('cablejack-platform')        → back to normal
+  const override = localStorage.getItem('cablejack-platform')
+  if (override === 'tizen' || override === 'webos') return override
+
   const ua = navigator.userAgent
 
   if (ua.includes('Tizen') || 'tizen' in window) return 'tizen'
