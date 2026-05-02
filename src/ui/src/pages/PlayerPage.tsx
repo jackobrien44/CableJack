@@ -118,7 +118,7 @@ export default function PlayerPage() {
         if (!player) return
         if (e.key === 'Enter' || e.key === 'MediaPlayPause') {
           e.preventDefault()
-          player.paused ? player.play().catch(() => {}) : player.pause()
+          if (player.paused) player.play().catch(() => {}); else player.pause()
         } else if (e.key === 'MediaPlay') {
           e.preventDefault()
           player.play().catch(() => {})
