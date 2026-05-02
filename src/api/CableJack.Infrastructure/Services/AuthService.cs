@@ -59,7 +59,8 @@ namespace CableJack.Infrastructure.Services
             user.LastLoginAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
 
-            return await CreateTokensAsync(user, ipAddress, deviceInfo);
+            var resolvedDeviceInfo = request.RememberMe ? "tv" : deviceInfo;
+            return await CreateTokensAsync(user, ipAddress, resolvedDeviceInfo, request.RememberMe);
         }
 
         public async Task<AuthResponse> RefreshTokenAsync(string refreshToken, string? ipAddress = null)
@@ -93,12 +94,15 @@ namespace CableJack.Infrastructure.Services
             }
         }
 
-        private async Task<AuthResponse> CreateTokensAsync(User user, string? ipAddress = null, string? deviceInfo = null)
+        private async Task<AuthResponse> CreateTokensAsync(User user, string? ipAddress = null, string? deviceInfo = null, bool rememberMe = false)
         {
             var (accessToken, expiresAt) = GenerateAccessToken(user);
             var refreshToken = GenerateRefreshToken();
             var jwtSettings = configuration.GetSection("Jwt");
-            var refreshExpiry = DateTime.UtcNow.AddDays(double.Parse(jwtSettings["RefreshExpirationDays"] ?? "30"));
+            var expiryDays = rememberMe
+                ? double.Parse(jwtSettings["PersistentRefreshExpirationDays"] ?? "365")
+                : double.Parse(jwtSettings["RefreshExpirationDays"] ?? "30");
+            var refreshExpiry = DateTime.UtcNow.AddDays(expiryDays);
 
             db.UserTokens.Add(new UserToken
             {

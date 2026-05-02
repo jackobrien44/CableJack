@@ -9,5 +9,7 @@ namespace CableJack.Core.DTOs
 
         [Required]
         public required string Password { get; set; }
+
+        public bool RememberMe { get; set; } = false;
     }
 }
