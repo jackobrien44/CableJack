@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { usePlatform } from '../hooks/usePlatform'
+import { TVLayout } from './tv'
 
 interface NavItem {
   to: string
@@ -63,7 +65,10 @@ function TabLink({ to, label, icon, end }: NavLinkProps) {
 }
 
 export default function Layout() {
+  const { isTV } = usePlatform()
   const { user, logout, isAdmin } = useAuth()
+
+  if (isTV) return <TVLayout />
 
   return (
     <div className="flex h-svh">
