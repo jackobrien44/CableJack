@@ -13,6 +13,7 @@ export const userApi = {
 
   getHistory: (page = 1, pageSize = 20) =>
     api.get<PagedResult<WatchHistoryResponse>>(`/users/me/history?page=${page}&pageSize=${pageSize}`),
+  deleteHistoryEntry: (id: number) => api.delete<void>(`/users/me/history/${id}`),
 
   getStats: () => api.get<UserStatsDto>('/users/me/stats'),
 }

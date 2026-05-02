@@ -10,5 +10,6 @@ namespace CableJack.Core.Interfaces
         Task<ChannelResponse?> UpdateChannelAsync(int id, UpdateChannelRequest request);
         Task<bool> DeleteChannelAsync(int id);
         Task<int> DeleteAllChannelsAsync();
+        Task<List<ChannelResponse>> GetRecentChannelsAsync(int count = 20);
     }
 }

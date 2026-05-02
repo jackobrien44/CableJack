@@ -11,6 +11,7 @@
         public required bool IsActive { get; set; }
         public required int SortOrder { get; set; }
         public required bool HasSources { get; set; }
+        public required DateTime CreatedAt { get; set; }
 
         public Category Category { get; set; } = null!;
         public ICollection<ChannelSource> Sources { get; set; } = [];

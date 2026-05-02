@@ -15,6 +15,12 @@ namespace CableJack.Api.Controllers
             return await channelService.GetChannelsAsync(pagination, categoryId, includeInactive: includeInactive, search: search, providerId: providerId);
         }
 
+        [HttpGet("recent")]
+        public async Task<List<ChannelResponse>> GetRecentChannels([FromQuery] int count = 20)
+        {
+            return await channelService.GetRecentChannelsAsync(count);
+        }
+
         [HttpGet("{id:int}")]
         public async Task<ActionResult<ChannelResponse>> GetChannel(int id)
         {
