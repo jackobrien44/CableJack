@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster, toast } from 'sonner'
 import { AuthProvider } from './context/AuthContext'
+import { PlatformProvider } from './context/PlatformContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
@@ -37,6 +38,7 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <PlatformProvider>
       <AuthProvider>
         <BrowserRouter>
           <Routes>
@@ -67,6 +69,7 @@ export default function App() {
           toastOptions={{ style: { fontFamily: "system-ui, 'Segoe UI', sans-serif" } }}
         />
       </AuthProvider>
+      </PlatformProvider>
     </QueryClientProvider>
   )
 }
