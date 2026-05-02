@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { init } from '@noriginmedia/norigin-spatial-navigation'
 import { isTV } from './utils/platform'
+
+if (isTV) init({ debug: false, visualDebug: false })
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster, toast } from 'sonner'
@@ -24,9 +26,6 @@ import { useStopStreamsOnExit } from './hooks/useStopStreamsOnExit'
 export default function App() {
   useStopStreamsOnExit()
 
-  useEffect(() => {
-    if (isTV) init({ debug: false, visualDebug: false })
-  }, [])
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
