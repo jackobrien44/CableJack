@@ -1,22 +1,30 @@
 import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { setFocus } from '@noriginmedia/norigin-spatial-navigation'
+import { Home, Tv2, LayoutList, Star, CircleUser, Settings, LogOut } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { Focusable } from './Focusable'
 import { FocusableRow } from './FocusableRow'
 
 const NAV_FOCUS_KEY = 'tv-nav'
 
-const navItems = [
-  { to: '/',          label: 'Home',      icon: '⌂' },
-  { to: '/channels',  label: 'Channels',  icon: '▶' },
-  { to: '/guide',     label: 'TV Guide',  icon: '≡' },
-  { to: '/favorites', label: 'Favorites', icon: '★' },
-  { to: '/profile',   label: 'Profile',   icon: '◉' },
+interface NavItem {
+  to: string
+  label: string
+  icon: LucideIcon
+}
+
+const navItems: NavItem[] = [
+  { to: '/',          label: 'Home',      icon: Home },
+  { to: '/channels',  label: 'Channels',  icon: Tv2 },
+  { to: '/guide',     label: 'TV Guide',  icon: LayoutList },
+  { to: '/favorites', label: 'Favorites', icon: Star },
+  { to: '/profile',   label: 'Profile',   icon: CircleUser },
 ]
 
-const adminItems = [
-  { to: '/admin', label: 'Admin', icon: '⚙' },
+const adminItems: NavItem[] = [
+  { to: '/admin', label: 'Admin', icon: Settings },
 ]
 
 export function TVLayout() {
@@ -76,7 +84,7 @@ export function TVLayout() {
                     : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                 }`}
               >
-                <span className="text-2xl w-8 text-center flex-shrink-0">{item.icon}</span>
+                <item.icon className="w-6 h-6 flex-shrink-0" />
                 {navFocused && <span className="text-lg font-medium whitespace-nowrap">{item.label}</span>}
               </button>
             </Focusable>
@@ -91,7 +99,7 @@ export function TVLayout() {
                 navFocused ? 'gap-4 px-3 py-4' : 'justify-center py-4'
               }`}
             >
-              <span className="text-2xl w-8 text-center flex-shrink-0">↩</span>
+              <LogOut className="w-6 h-6 flex-shrink-0" />
               {navFocused && <span className="text-lg font-medium whitespace-nowrap">Sign out</span>}
             </button>
           </Focusable>
