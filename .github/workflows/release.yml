@@ -58,6 +58,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Generate icons from SVG
+        run: |
+          sudo apt-get install -y librsvg2-bin
+          rsvg-convert -w 512 -h 512 src/ui/public/favicon.svg -o tizen/icon.png
+          rsvg-convert -w 80  -h 80  src/ui/public/favicon.svg -o webos/icon.png
+          rsvg-convert -w 130 -h 130 src/ui/public/favicon.svg -o webos/largeIcon.png
+
       - name: Update versions
         run: |
           SEMVER="${{ github.event.inputs.version }}"
