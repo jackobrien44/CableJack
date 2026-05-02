@@ -29,8 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('auth:logout', handler)
   }, [])
 
-  const login = useCallback(async (username: string, password: string) => {
-    const res = await authApi.login(username, password)
+  const login = useCallback(async (username: string, password: string, rememberMe?: boolean) => {
+    const res = await authApi.login(username, password, rememberMe)
     localStorage.setItem('accessToken', res.accessToken)
     localStorage.setItem('refreshToken', res.refreshToken)
     setState({ user: res.user, isLoading: false })

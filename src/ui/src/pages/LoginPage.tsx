@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../hooks/useAuth'
 import { ApiError, api } from '../api/client'
+import { isTV } from '../utils/platform'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -22,7 +23,7 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
     try {
-      await login(username, password)
+      await login(username, password, isTV)
       navigate('/', { replace: true })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Login failed.')

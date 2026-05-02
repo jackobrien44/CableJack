@@ -7,7 +7,7 @@ interface AuthState {
 }
 
 export interface AuthContextValue extends AuthState {
-  login: (username: string, password: string) => Promise<void>
+  login: (username: string, password: string, rememberMe?: boolean) => Promise<void>
   logout: () => Promise<void>
   isAuthenticated: boolean
   isAdmin: boolean

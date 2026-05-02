@@ -2,8 +2,8 @@ import { api } from './client'
 import type { AuthResponse } from '../types/api'
 
 export const authApi = {
-  login: (username: string, password: string) =>
-    api.post<AuthResponse>('/auth/login', { username, password }),
+  login: (username: string, password: string, rememberMe = false) =>
+    api.post<AuthResponse>('/auth/login', { username, password, rememberMe }),
 
   register: (username: string, password: string) =>
     api.post<AuthResponse>('/auth/register', { username, password }),
