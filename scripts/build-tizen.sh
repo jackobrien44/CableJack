@@ -1,20 +1,12 @@
 #!/usr/bin/env bash
-# Packages the Tizen hosted web app launcher as a .wgt file.
+# Packages the Tizen hosted web app launcher as an unsigned .wgt file.
 #
 # The .wgt is a thin manifest that points to https://cablejack.tv — no UI
 # build needed. Updates to the app are live as soon as you deploy; users
 # never need to reinstall.
 #
-# Prerequisites (for signed build):
-#   - Tizen Studio CLI on PATH (provides the `tizen` command)
-#     Default location: ~/tizen-studio/tools/ide/bin/tizen
-#     Add to PATH:  export PATH="$HOME/tizen-studio/tools/ide/bin:$PATH"
-#   - A developer certificate profile configured in Tizen Studio
-#     (Tizen Studio > Tools > Certificate Manager)
-#
-# If the `tizen` CLI is not found, an unsigned .wgt is created via zip.
-# Unsigned packages work for sideloading in developer mode but cannot be
-# submitted to the Samsung Smart TV app store.
+# Unsigned packages work for sideloading when developer mode is enabled on
+# the TV. Signing is not required for this workflow.
 #
 # Usage:
 #   ./scripts/build-tizen.sh
@@ -32,34 +24,23 @@ if [ ! -f "$TIZEN_SRC/icon.png" ]; then
   echo "         (convert src/ui/public/favicon.svg to PNG, or supply your own)"
 fi
 
+echo "==> Packaging as .wgt (unsigned)..."
 cd "$TIZEN_SRC"
+rm -f CableJack.wgt
 
-if command -v tizen &>/dev/null; then
-  echo "==> Packaging as .wgt (signed, via Tizen Studio CLI)..."
-  tizen package --type wgt -- .
+if command -v zip &>/dev/null; then
+  zip -r CableJack.wgt . -x "*.wgt" -x ".tproject"
+elif command -v powershell.exe &>/dev/null; then
+  # Git Bash on Windows — pwd -W gives C:/... which PowerShell accepts
+  SRC_WIN=$(pwd -W)
+  powershell.exe -NoProfile -Command "
+    Get-ChildItem -Path '${SRC_WIN}' |
+      Where-Object { \$_.Name -notlike '*.wgt' -and \$_.Name -ne '.tproject' } |
+      Compress-Archive -DestinationPath '${SRC_WIN}/CableJack.wgt' -Force
+  "
 else
-  echo "WARNING: 'tizen' CLI not found — building unsigned .wgt via zip."
-  echo "         To build a signed package, add Tizen Studio CLI to PATH:"
-  echo "           export PATH=\"\$HOME/tizen-studio/tools/ide/bin:\$PATH\""
-  echo ""
-  echo "==> Packaging as .wgt (unsigned)..."
-  rm -f CableJack.wgt
-  if command -v zip &>/dev/null; then
-    zip -r CableJack.wgt . -x "*.wgt" -x ".tproject"
-  elif command -v powershell.exe &>/dev/null; then
-    # Git Bash on Windows: use PowerShell Compress-Archive
-    # pwd -W gives the Windows-style path (C:\...) that PowerShell expects
-    SRC_WIN=$(pwd -W)
-    OUT_WIN="${SRC_WIN}\\CableJack.wgt"
-    powershell.exe -NoProfile -Command "
-      Get-ChildItem -Path '${SRC_WIN}' |
-        Where-Object { \$_.Name -notlike '*.wgt' -and \$_.Name -ne '.tproject' } |
-        Compress-Archive -DestinationPath '${OUT_WIN}' -Force
-    "
-  else
-    echo "ERROR: neither 'zip' nor 'powershell.exe' found — cannot create .wgt." >&2
-    exit 1
-  fi
+  echo "ERROR: neither 'zip' nor 'powershell.exe' found — cannot create .wgt." >&2
+  exit 1
 fi
 
 WGT_FILE=$(find "$TIZEN_SRC" -maxdepth 1 -name "*.wgt" | head -1)
