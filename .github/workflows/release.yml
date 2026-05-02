@@ -48,6 +48,40 @@ jobs:
             --notes-file notes.md \
             --latest
 
+  package-tv:
+    name: Package TV apps
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update versions
+        run: |
+          SEMVER="${{ github.event.inputs.version }}"
+          SEMVER="${SEMVER#v}"
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$SEMVER\"/" webos/appinfo.json
+          sed -i "s/version=\"[^\"]*\"/version=\"$SEMVER\"/" tizen/config.xml
+
+      - name: Build Tizen .wgt
+        run: bash scripts/build-tizen.sh
+
+      - name: Install ares-cli
+        run: npm install -g @webosose/ares-cli
+
+      - name: Build WebOS .ipk
+        run: bash scripts/build-webos.sh
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ github.event.inputs.version }} \
+            tizen/CableJack.wgt \
+            webos/*.ipk
+
   publish:
     name: Publish image
     needs: release
