@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useMemo } from 'react'
+import { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { MediaPlayer, MediaProvider, isHLSProvider } from '@vidstack/react'
@@ -9,12 +9,16 @@ import '@vidstack/react/player/styles/default/layouts/video.css'
 import { streamsApi } from '../api/streams'
 import { epgApi } from '../api/epg'
 import type { ProgrammeResponse } from '../types/api'
+import { usePlatform } from '../hooks/usePlatform'
+
+const CONTROLS_HIDE_MS = 4000
 
 export default function PlayerPage() {
   const { id } = useParams<{ id: string }>()
   const channelId = Number(id)
   const navigate = useNavigate()
   const location = useLocation()
+  const { isTV } = usePlatform()
 
   function goBack() {
     if (location.key !== 'default') navigate(-1)
@@ -28,6 +32,14 @@ export default function PlayerPage() {
   const [showSidebar, setShowSidebar] = useState(false)
   const playerRef = useRef<MediaPlayerInstance>(null)
   const [resolution, setResolution] = useState<string | null>(null)
+  const [showControls, setShowControls] = useState(false)
+  const controlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const revealControls = useCallback(() => {
+    setShowControls(true)
+    if (controlsTimer.current) clearTimeout(controlsTimer.current)
+    controlsTimer.current = setTimeout(() => setShowControls(false), CONTROLS_HIDE_MS)
+  }, [])
 
   useEffect(() => {
     if (startedRef.current) return
@@ -99,6 +111,22 @@ export default function PlayerPage() {
       if (e.key === 'Escape') handleExit()
       else if (e.key === 'i' || e.key === 'I') setShowSidebar(v => !v)
       else if ((e.key === 'r' || e.key === 'R') && stream?.status === 'Error' && !retry.isPending) retry.mutate()
+
+      if (isTV) {
+        revealControls()
+        const player = playerRef.current
+        if (!player) return
+        if (e.key === 'Enter' || e.key === 'MediaPlayPause') {
+          e.preventDefault()
+          player.paused ? player.play().catch(() => {}) : player.pause()
+        } else if (e.key === 'MediaPlay') {
+          e.preventDefault()
+          player.play().catch(() => {})
+        } else if (e.key === 'MediaPause' || e.key === 'MediaStop') {
+          e.preventDefault()
+          player.pause()
+        }
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -125,10 +153,10 @@ export default function PlayerPage() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row bg-gray-950 h-svh overflow-hidden">
+    <div className={`flex bg-gray-950 h-svh overflow-hidden ${isTV ? '' : 'flex-col md:flex-row'}`}>
 
       {/* Player column */}
-      <div className="flex-1 h-[45svh] md:h-svh relative bg-black">
+      <div className={`relative bg-black ${isTV ? 'h-svh w-full' : 'flex-1 h-[45svh] md:h-svh'}`}>
 
         {/* Status overlays */}
         {isStarting && (
@@ -236,11 +264,27 @@ export default function PlayerPage() {
             }}
           />
         </MediaPlayer>
+
+        {/* TV: bottom info bar — channel name + now playing, fades after inactivity */}
+        {isTV && showControls && (
+          <div className="absolute inset-x-0 bottom-0 z-20 pointer-events-none bg-gradient-to-t from-black/90 via-black/50 to-transparent px-12 pb-10 pt-24">
+            <p className="text-white text-4xl font-bold drop-shadow-lg">{stream?.channelName ?? '…'}</p>
+            {nowPlaying && (
+              <>
+                <p className="text-gray-200 text-2xl mt-2">{nowPlaying.title}</p>
+                <p className="text-gray-400 text-lg mt-1">{fmtTime(nowPlaying.startTime)} – {fmtTime(nowPlaying.endTime)}</p>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Sidebar */}
       {showSidebar && (
-        <div className="w-full border-t md:w-80 xl:w-96 flex flex-col md:border-l md:border-t-0 border-gray-800 max-h-[55svh] md:max-h-none md:h-svh overflow-hidden">
+        <div className={isTV
+          ? 'absolute right-0 top-0 z-30 h-full w-96 flex flex-col bg-gray-900/95 border-l border-gray-800 overflow-hidden'
+          : 'w-full border-t md:w-80 xl:w-96 flex flex-col md:border-l md:border-t-0 border-gray-800 max-h-[55svh] md:max-h-none md:h-svh overflow-hidden'
+        }>
           {/* Now playing */}
           <div className="px-5 py-4 border-b border-gray-800 shrink-0">
             <p className="text-white font-bold text-2xl mb-3">{stream?.channelName ?? '…'}</p>
