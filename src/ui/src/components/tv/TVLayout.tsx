@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { setFocus } from '@noriginmedia/norigin-spatial-navigation'
 import { useAuth } from '../../hooks/useAuth'
@@ -25,27 +25,26 @@ export function TVLayout() {
   const location = useLocation()
   const { isAdmin, logout } = useAuth()
 
-  const openMenu = useCallback(() => {
-    setMenuOpen(true)
-    // Give the DOM a tick to mount the nav before focusing it
-    requestAnimationFrame(() => setFocus(NAV_FOCUS_KEY))
-  }, [])
+  function navTo(to: string) {
+    setMenuOpen(false)
+    navigate(to)
+  }
 
-  const closeMenu = useCallback(() => setMenuOpen(false), [])
+  // Focus the nav panel whenever it opens (external system call, not setState)
+  useEffect(() => {
+    if (menuOpen) requestAnimationFrame(() => setFocus(NAV_FOCUS_KEY))
+  }, [menuOpen])
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.preventDefault()
-        if (menuOpen) closeMenu(); else openMenu()
+        setMenuOpen(prev => !prev)
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [menuOpen, openMenu, closeMenu])
-
-  // Close the menu whenever the route changes (nav item was selected)
-  useEffect(() => { closeMenu() }, [location.pathname, closeMenu])
+  }, [])
 
   const allItems = isAdmin ? [...navItems, ...adminItems] : navItems
 
@@ -63,11 +62,11 @@ export function TVLayout() {
               {allItems.map(item => (
                 <Focusable
                   key={item.to}
-                  onEnterPress={() => navigate(item.to)}
+                  onEnterPress={() => navTo(item.to)}
                   focusClassName="ring-2 ring-violet-400 rounded-xl"
                 >
                   <button
-                    onClick={() => navigate(item.to)}
+                    onClick={() => navTo(item.to)}
                     className={`w-full flex items-center gap-5 px-4 py-4 rounded-xl text-left transition-colors ${
                       location.pathname === item.to
                         ? 'bg-violet-600 text-white'
