@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
 import { epgApi } from '../api/epg'
@@ -7,6 +7,9 @@ import { adminApi } from '../api/admin'
 import { providersApi } from '../api/providers'
 import { channelsApi } from '../api/channels'
 import { useAuth } from '../hooks/useAuth'
+import { usePlatform } from '../hooks/usePlatform'
+import { Focusable } from '../components/tv/Focusable'
+import { FocusableRow } from '../components/tv/FocusableRow'
 import { httpsUrl } from '../utils/url'
 import type { ProgrammeResponse } from '../types/api'
 
@@ -142,15 +145,24 @@ function ScrollRow({ children }: { children: React.ReactNode }) {
   )
 }
 
-function SectionHeader({ title, to }: { title: string; to?: string }) {
+function SectionHeader({ title, to, isTV }: { title: string; to?: string; isTV?: boolean }) {
+  const navigate = useNavigate()
   return (
-    <div className="flex items-center justify-between mb-4">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">{title}</h2>
-      {to && (
-        <Link to={to} className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
-          See all
+    <div className={`flex items-center justify-between ${isTV ? 'mb-6' : 'mb-4'}`}>
+      <h2 className={`font-semibold uppercase tracking-wider text-gray-400 ${isTV ? 'text-base' : 'text-xs'}`}>
+        {title}
+      </h2>
+      {to && (isTV ? (
+        <Focusable onEnterPress={() => navigate(to)} focusClassName="ring-2 ring-violet-400 rounded-lg">
+          <Link to={to} className="text-lg font-medium text-violet-400 hover:text-violet-300 px-4 py-2 rounded-lg transition-colors">
+            See all →
+          </Link>
+        </Focusable>
+      ) : (
+        <Link to={to} className="text-sm font-medium text-violet-400 hover:text-violet-300 transition-colors">
+          See all →
         </Link>
-      )}
+      ))}
     </div>
   )
 }
@@ -166,6 +178,8 @@ function StatCard({ label, value }: { label: string; value: number }) {
 
 export default function HomePage() {
   const { user, isAdmin } = useAuth()
+  const { isTV } = usePlatform()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const removeHistory = useMutation({
@@ -254,62 +268,85 @@ export default function HomePage() {
         {/* Continue Watching */}
         {recentChannels.length > 0 && (
           <section>
-            <SectionHeader title="Continue Watching" to="/channels" />
-            <ScrollRow>
-              {recentChannels.map(ch => (
-                <div key={ch.channelId} className="relative group/row" style={{ width: '260px', flexShrink: 0 }}>
-                  <ChannelCard
-                    id={ch.channelId}
-                    name={ch.channelName}
-                    logoUrl={ch.channelLogoUrl}
-                    nowPlaying={nowPlayingMap.get(ch.channelId)}
-                  />
-                  <button
-                    onClick={() => removeHistory.mutate(ch.historyId)}
-                    className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-black/60 text-gray-400 hover:text-white hover:bg-black/80 opacity-0 group-hover/row:opacity-100 transition-opacity"
-                    aria-label="Remove from continue watching"
-                  >
-                    <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-                  </button>
-                </div>
-              ))}
-            </ScrollRow>
+            <SectionHeader title="Continue Watching" to="/channels" isTV={isTV} />
+            {isTV ? (
+              <FocusableRow className="flex gap-4 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                {recentChannels.map(ch => (
+                  <Focusable key={ch.channelId} className="flex-shrink-0" onEnterPress={() => navigate(`/channels/${ch.channelId}`)}>
+                    <ChannelCard
+                      id={ch.channelId}
+                      name={ch.channelName}
+                      logoUrl={ch.channelLogoUrl}
+                      nowPlaying={nowPlayingMap.get(ch.channelId)}
+                    />
+                  </Focusable>
+                ))}
+              </FocusableRow>
+            ) : (
+              <ScrollRow>
+                {recentChannels.map(ch => (
+                  <div key={ch.channelId} className="relative group/row" style={{ width: '260px', flexShrink: 0 }}>
+                    <ChannelCard
+                      id={ch.channelId}
+                      name={ch.channelName}
+                      logoUrl={ch.channelLogoUrl}
+                      nowPlaying={nowPlayingMap.get(ch.channelId)}
+                    />
+                    <button
+                      onClick={() => removeHistory.mutate(ch.historyId)}
+                      className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-black/60 text-gray-400 hover:text-white hover:bg-black/80 opacity-0 group-hover/row:opacity-100 transition-opacity"
+                      aria-label="Remove from continue watching"
+                    >
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    </button>
+                  </div>
+                ))}
+              </ScrollRow>
+            )}
           </section>
         )}
 
         {/* Favorites */}
         {favorites.length > 0 && (
           <section>
-            <SectionHeader title="Your Favorites" to="/favorites" />
-            <ScrollRow>
-              {favorites.map(ch => (
-                <ChannelCard
-                  key={ch.id}
-                  id={ch.id}
-                  name={ch.name}
-                  logoUrl={ch.logoUrl}
-                  nowPlaying={nowPlayingMap.get(ch.id)}
-                />
-              ))}
-            </ScrollRow>
+            <SectionHeader title="Your Favorites" to="/favorites" isTV={isTV} />
+            {isTV ? (
+              <FocusableRow className="flex gap-4 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                {favorites.map(ch => (
+                  <Focusable key={ch.id} className="flex-shrink-0" onEnterPress={() => navigate(`/channels/${ch.id}`)}>
+                    <ChannelCard id={ch.id} name={ch.name} logoUrl={ch.logoUrl} nowPlaying={nowPlayingMap.get(ch.id)} />
+                  </Focusable>
+                ))}
+              </FocusableRow>
+            ) : (
+              <ScrollRow>
+                {favorites.map(ch => (
+                  <ChannelCard key={ch.id} id={ch.id} name={ch.name} logoUrl={ch.logoUrl} nowPlaying={nowPlayingMap.get(ch.id)} />
+                ))}
+              </ScrollRow>
+            )}
           </section>
         )}
 
         {/* Recently Added */}
         {newlyAdded.length > 0 && (
           <section>
-            <SectionHeader title="Recently Added" to="/channels" />
-            <ScrollRow>
-              {newlyAdded.map(ch => (
-                <ChannelCard
-                  key={ch.id}
-                  id={ch.id}
-                  name={ch.name}
-                  logoUrl={ch.logoUrl}
-                  compact
-                />
-              ))}
-            </ScrollRow>
+            <SectionHeader title="Recently Added" to="/channels" isTV={isTV} />
+            {isTV ? (
+              <FocusableRow className="flex gap-4 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                {newlyAdded.map(ch => (
+                  <Focusable key={ch.id} className="flex-shrink-0" onEnterPress={() => navigate(`/channels/${ch.id}`)}>
+                    <ChannelCard id={ch.id} name={ch.name} logoUrl={ch.logoUrl} compact />
+                  </Focusable>
+                ))}
+              </FocusableRow>
+            ) : (
+              <ScrollRow>
+                {newlyAdded.map(ch => (
+                  <ChannelCard key={ch.id} id={ch.id} name={ch.name} logoUrl={ch.logoUrl} compact />
+                ))}
+              </ScrollRow>
+            )}
           </section>
         )}
 
