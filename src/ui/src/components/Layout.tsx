@@ -10,15 +10,15 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: '/', label: 'Home', icon: '🏠' },
-  { to: '/channels', label: 'Channels', icon: '📺' },
-  { to: '/guide', label: 'TV Guide', icon: '📋' },
-  { to: '/favorites', label: 'Favorites', icon: '⭐' },
-  { to: '/profile', label: 'Profile', icon: '👤' },
+  { to: '/', label: 'Home', icon: '⌂' },
+  { to: '/channels', label: 'Channels', icon: '▶' },
+  { to: '/guide', label: 'TV Guide', icon: '≡' },
+  { to: '/favorites', label: 'Favorites', icon: '★' },
+  { to: '/profile', label: 'Profile', icon: '◉' },
 ]
 
 const adminItems: NavItem[] = [
-  { to: '/admin', label: 'Admin', icon: '⚙️' },
+  { to: '/admin', label: 'Admin', icon: '⚙' },
 ]
 
 interface NavLinkProps {
