@@ -7,6 +7,8 @@ import { categoriesApi } from '../api/categories'
 import { userApi } from '../api/user'
 import { ChannelRow } from '../components/ChannelRow'
 import { useStartStream } from '../hooks/useStartStream'
+import { usePlatform } from '../hooks/usePlatform'
+import { Focusable, FocusableRow } from '../components/tv'
 import type { ChannelResponse } from '../types/api'
 
 const PAGE_SIZE = 50
@@ -15,6 +17,7 @@ export default function ChannelsPage() {
   const queryClient = useQueryClient()
   const { categoryId: categoryIdParam } = useParams<{ categoryId?: string }>()
   const navigate = useNavigate()
+  const { isTV } = usePlatform()
   const [searchParams, setSearchParams] = useSearchParams()
   const search = searchParams.get('q') ?? ''
   const categoryId = categoryIdParam ? Number(categoryIdParam) : undefined
@@ -91,16 +94,18 @@ export default function ChannelsPage() {
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden px-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-6 pb-4 gap-3 shrink-0">
-        <h1 className="text-xl font-semibold text-white shrink-0">Channels</h1>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          <input
-            type="search"
-            placeholder="Search channels…"
-            value={inputValue}
-            onChange={e => handleSearchChange(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 w-full sm:w-56"
-          />
-        </div>
+        <h1 className={`font-semibold text-white shrink-0 ${isTV ? 'text-3xl' : 'text-xl'}`}>Channels</h1>
+        {!isTV && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <input
+              type="search"
+              placeholder="Search channels…"
+              value={inputValue}
+              onChange={e => handleSearchChange(e.target.value)}
+              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500 w-full sm:w-56"
+            />
+          </div>
+        )}
       </div>
 
       {categories.length > 0 && (
@@ -151,49 +156,63 @@ export default function ChannelsPage() {
 
       {channels.length > 0 && (
         <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto pb-3">
-          <div className="flex flex-col gap-1.5">
+          <FocusableRow className={`flex flex-col ${isTV ? 'gap-3' : 'gap-1.5'}`}>
             {channels.map(channel => (
-              <ChannelRow
+              <Focusable
                 key={channel.id}
-                channel={channel}
-                isFavorite={favoriteIds.has(channel.id)}
-                onPlay={() => startStream.mutate(channel.id)}
-                onToggleFavorite={() => toggleFavorite(channel)}
-                isStarting={startStream.isPending && startStream.variables === channel.id}
-              />
+                onEnterPress={() => startStream.mutate(channel.id)}
+                focusClassName="ring-2 ring-violet-400 rounded-xl"
+              >
+                <ChannelRow
+                  channel={channel}
+                  isFavorite={favoriteIds.has(channel.id)}
+                  onPlay={() => startStream.mutate(channel.id)}
+                  onToggleFavorite={() => toggleFavorite(channel)}
+                  isStarting={startStream.isPending && startStream.variables === channel.id}
+                />
+              </Focusable>
             ))}
-          </div>
+          </FocusableRow>
         </div>
       )}
 
       {channels.length > 0 && totalPages > 1 && (
-        <div className="py-3 flex items-center justify-center gap-0.5 sm:gap-1 shrink-0">
-          <PageButton onClick={() => setPage(page - 1)} disabled={page === 1}>‹</PageButton>
+        <FocusableRow className={`py-3 flex items-center justify-center shrink-0 ${isTV ? 'gap-2' : 'gap-0.5 sm:gap-1'}`}>
+          <Focusable onEnterPress={() => setPage(page - 1)} focusClassName="ring-2 ring-violet-400 rounded-lg">
+            <PageButton onClick={() => setPage(page - 1)} disabled={page === 1} tv={isTV}>‹</PageButton>
+          </Focusable>
           {pageNumbers(page, totalPages).map((p, i) =>
             p === '…' ? (
-              <span key={`ellipsis-${i}`} className="px-2 text-gray-600">…</span>
+              <span key={`ellipsis-${i}`} className={`text-gray-600 ${isTV ? 'px-3 text-xl' : 'px-2'}`}>…</span>
             ) : (
-              <PageButton key={p} onClick={() => setPage(p as number)} active={p === page}>{p}</PageButton>
+              <Focusable key={p} onEnterPress={() => setPage(p as number)} focusClassName="ring-2 ring-violet-400 rounded-lg">
+                <PageButton onClick={() => setPage(p as number)} active={p === page} tv={isTV}>{p}</PageButton>
+              </Focusable>
             )
           )}
-          <PageButton onClick={() => setPage(page + 1)} disabled={page === totalPages}>›</PageButton>
-        </div>
+          <Focusable onEnterPress={() => setPage(page + 1)} focusClassName="ring-2 ring-violet-400 rounded-lg">
+            <PageButton onClick={() => setPage(page + 1)} disabled={page === totalPages} tv={isTV}>›</PageButton>
+          </Focusable>
+        </FocusableRow>
       )}
     </div>
   )
 }
 
-function PageButton({ onClick, disabled, active, children }: {
+function PageButton({ onClick, disabled, active, tv, children }: {
   onClick: () => void
   disabled?: boolean
   active?: boolean
+  tv?: boolean
   children: React.ReactNode
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`min-w-[2.5rem] h-10 px-1 sm:min-w-[2.25rem] sm:h-9 sm:px-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-30 ${
+      className={`rounded-lg font-medium transition-colors disabled:opacity-30 ${
+        tv ? 'min-w-[3.5rem] h-14 px-3 text-xl' : 'min-w-[2.5rem] h-10 px-1 sm:min-w-[2.25rem] sm:h-9 sm:px-2 text-sm'
+      } ${
         active
           ? 'bg-violet-600 text-white'
           : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
