@@ -3,7 +3,7 @@
   "version": "0.4.0",
   "vendor": "CableJack",
   "type": "web",
-  "main": "https://cablejack.tv",
+  "main": "index.html",
   "title": "CableJack",
   "icon": "icon.png",
   "largeIcon": "largeIcon.png",
