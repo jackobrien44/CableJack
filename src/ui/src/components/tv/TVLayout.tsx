@@ -94,7 +94,7 @@ export function TVLayout() {
           </div>
 
           {/* Dimmed backdrop — click or D-pad right to close */}
-          <div className="flex-1 bg-black/60" onClick={closeMenu} />
+          <div className="flex-1 bg-black/60" onClick={() => setMenuOpen(false)} />
         </div>
       )}
     </div>
