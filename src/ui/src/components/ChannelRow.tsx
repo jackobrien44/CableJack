@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { ChannelResponse } from '../types/api'
+import { httpsUrl } from '../utils/url'
 
 interface ChannelRowProps {
   channel: ChannelResponse
@@ -18,7 +19,7 @@ export function ChannelRow({ channel, isFavorite, onPlay, onToggleFavorite, isSt
       <div className="shrink-0 aspect-square w-12 flex items-center justify-center overflow-hidden rounded-lg">
         {channel.logoUrl ? (
           <img
-            src={channel.logoUrl}
+            src={httpsUrl(channel.logoUrl)}
             alt={channel.name}
             className="w-full h-full object-contain p-1.5"
             style={{ filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.35)) drop-shadow(0 0 5px rgba(255,255,255,0.08))' }}

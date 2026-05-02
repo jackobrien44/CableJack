@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { MediaPlayer, MediaProvider, isHLSProvider } from '@vidstack/react'
@@ -106,6 +106,15 @@ export default function PlayerPage() {
   const isRunning = stream?.status === 'Running' && !!stream?.url
   const isStarting = (startError == null && streamId == null) || stream?.status === 'Starting'
 
+  // Stable object reference — only changes when the URL actually changes.
+  // Without this, every 2s poll creates a new object and Vidstack reinitialises
+  // HLS.js, causing segment0000.ts to repeat and play() to be aborted.
+  const mediaSrc = useMemo(
+    () => isRunning ? { src: stream!.url, type: 'application/x-mpegurl' as const } : undefined,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isRunning, stream?.url]
+  )
+
   function handleExit() {
     if (streamId !== null) {
       stop.mutate()
@@ -169,7 +178,7 @@ export default function PlayerPage() {
         {/* Vidstack player — always mounted so controls are visible during loading */}
         <MediaPlayer
           ref={playerRef}
-          src={isRunning ? { src: stream.url, type: 'application/x-mpegurl' } : undefined}
+          src={mediaSrc}
           minLiveDVRWindow={30}
           className="w-full h-full dark"
           onProviderSetup={provider => {
@@ -177,7 +186,7 @@ export default function PlayerPage() {
               provider.config = { liveSyncDurationCount: 4 }
             }
           }}
-          onCanPlay={() => playerRef.current?.play()}
+          onCanPlay={() => { playerRef.current?.play().catch(() => {}) }}
           onPause={() => { ffmpegPaused.current = true; pause.mutate() }}
           onPlay={() => {
             if (!ffmpegPaused.current) return

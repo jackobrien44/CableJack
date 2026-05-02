@@ -6,6 +6,7 @@ import { epgApi } from '../api/epg'
 import { adminApi } from '../api/admin'
 import { providersApi } from '../api/providers'
 import { useAuth } from '../hooks/useAuth'
+import { httpsUrl } from '../utils/url'
 import type { ProgrammeResponse } from '../types/api'
 
 function epgProgress(prog: ProgrammeResponse): number {
@@ -43,7 +44,7 @@ function ChannelCard({ id, name, logoUrl, nowPlaying }: ChannelCardProps) {
         {/* Logo — always visible */}
         {logoUrl
           ? <img
-              src={logoUrl}
+              src={httpsUrl(logoUrl)}
               alt={name}
               className="max-w-[80%] max-h-[70%] object-contain"
               style={{ filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.6)) drop-shadow(0 0 6px rgba(255,255,255,0.15))' }}

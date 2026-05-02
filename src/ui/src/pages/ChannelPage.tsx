@@ -5,6 +5,7 @@ import { epgApi } from '../api/epg'
 import { userApi } from '../api/user'
 import { useStartStream } from '../hooks/useStartStream'
 import type { ProgrammeResponse } from '../types/api'
+import { httpsUrl } from '../utils/url'
 
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -94,7 +95,7 @@ export default function ChannelPage() {
         <div className="w-full h-52 sm:w-56 sm:h-56 bg-gray-900 rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
           {channel.logoUrl ? (
             <img
-              src={channel.logoUrl}
+              src={httpsUrl(channel.logoUrl)}
               alt={channel.name}
               className="max-w-full max-h-full object-contain p-4"
               style={{ filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.6)) drop-shadow(0 0 6px rgba(255,255,255,0.15))' }}
