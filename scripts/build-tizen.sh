@@ -32,11 +32,14 @@ if command -v zip &>/dev/null; then
   zip -r CableJack.wgt . -x "*.wgt" -x ".tproject"
 elif command -v powershell.exe &>/dev/null; then
   # Git Bash on Windows — pwd -W gives C:/... which PowerShell accepts
+  # Compress-Archive only accepts .zip, so write a temp zip then rename to .wgt
   SRC_WIN=$(pwd -W)
   powershell.exe -NoProfile -Command "
+    \$tmp = '${SRC_WIN}/CableJack.tmp.zip';
     Get-ChildItem -Path '${SRC_WIN}' |
-      Where-Object { \$_.Name -notlike '*.wgt' -and \$_.Name -ne '.tproject' } |
-      Compress-Archive -DestinationPath '${SRC_WIN}/CableJack.wgt' -Force
+      Where-Object { \$_.Name -notlike '*.wgt' -and \$_.Name -ne '.tproject' -and \$_.Name -ne 'CableJack.tmp.zip' } |
+      Compress-Archive -DestinationPath \$tmp -Force;
+    Rename-Item -Path \$tmp -NewName 'CableJack.wgt'
   "
 else
   echo "ERROR: neither 'zip' nor 'powershell.exe' found — cannot create .wgt." >&2
