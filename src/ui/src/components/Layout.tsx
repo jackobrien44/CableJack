@@ -1,4 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { Home, Tv2, LayoutList, Star, CircleUser, Settings, LogOut } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { usePlatform } from '../hooks/usePlatform'
 import { TVLayout } from './tv'
@@ -6,29 +8,29 @@ import { TVLayout } from './tv'
 interface NavItem {
   to: string
   label: string
-  icon: string
+  icon: LucideIcon
 }
 
 const navItems: NavItem[] = [
-  { to: '/', label: 'Home', icon: '⌂' },
-  { to: '/channels', label: 'Channels', icon: '▶' },
-  { to: '/guide', label: 'TV Guide', icon: '≡' },
-  { to: '/favorites', label: 'Favorites', icon: '★' },
-  { to: '/profile', label: 'Profile', icon: '◉' },
+  { to: '/',          label: 'Home',      icon: Home },
+  { to: '/channels',  label: 'Channels',  icon: Tv2 },
+  { to: '/guide',     label: 'TV Guide',  icon: LayoutList },
+  { to: '/favorites', label: 'Favorites', icon: Star },
+  { to: '/profile',   label: 'Profile',   icon: CircleUser },
 ]
 
 const adminItems: NavItem[] = [
-  { to: '/admin', label: 'Admin', icon: '⚙' },
+  { to: '/admin', label: 'Admin', icon: Settings },
 ]
 
-interface NavLinkProps {
+interface NavLinkItemProps {
   to: string
   label: string
-  icon: string
+  icon: LucideIcon
   end?: boolean
 }
 
-function SidebarLink({ to, label, icon, end }: NavLinkProps) {
+function SidebarLink({ to, label, icon: Icon, end }: NavLinkItemProps) {
   return (
     <NavLink
       to={to}
@@ -41,13 +43,13 @@ function SidebarLink({ to, label, icon, end }: NavLinkProps) {
         }`
       }
     >
-      <span>{icon}</span>
+      <Icon className="w-4 h-4 shrink-0" />
       {label}
     </NavLink>
   )
 }
 
-function TabLink({ to, label, icon, end }: NavLinkProps) {
+function TabLink({ to, label, icon: Icon, end }: NavLinkItemProps) {
   return (
     <NavLink
       to={to}
@@ -58,7 +60,7 @@ function TabLink({ to, label, icon, end }: NavLinkProps) {
         }`
       }
     >
-      <span className="text-lg leading-none">{icon}</span>
+      <Icon className="w-5 h-5" />
       <span>{label}</span>
     </NavLink>
   )
@@ -91,12 +93,7 @@ export default function Layout() {
           {isAdmin && (
             <div className="pt-3 mt-3 border-t border-gray-800 space-y-1">
               {adminItems.map(item => (
-                <SidebarLink
-                  key={item.to}
-                  to={item.to}
-                  label={item.label}
-                  icon={item.icon}
-                />
+                <SidebarLink key={item.to} to={item.to} label={item.label} icon={item.icon} />
               ))}
             </div>
           )}
@@ -112,8 +109,9 @@ export default function Layout() {
           <p className="text-gray-300 text-sm font-medium truncate">{user?.username}</p>
           <button
             onClick={logout}
-            className="text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 hover:bg-gray-800 px-3 py-1.5 rounded-lg transition-colors shrink-0"
+            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 hover:bg-gray-800 px-3 py-1.5 rounded-lg transition-colors shrink-0"
           >
+            <LogOut className="w-3.5 h-3.5" />
             Sign out
           </button>
         </div>
@@ -135,12 +133,7 @@ export default function Layout() {
           />
         ))}
         {isAdmin && adminItems.map(item => (
-          <TabLink
-            key={item.to}
-            to={item.to}
-            label={item.label}
-            icon={item.icon}
-          />
+          <TabLink key={item.to} to={item.to} label={item.label} icon={item.icon} />
         ))}
       </nav>
     </div>
