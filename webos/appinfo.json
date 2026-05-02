@@ -1,0 +1,14 @@
+{
+  "id": "tv.cablejack.app",
+  "version": "1.0.0",
+  "vendor": "CableJack",
+  "type": "web",
+  "main": "https://cablejack.tv",
+  "title": "CableJack",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "bgColor": "#030712",
+  "iconColor": "#7c3aed",
+  "resolution": "1920x1080",
+  "transparent": false
+}
