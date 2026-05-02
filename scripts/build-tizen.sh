@@ -44,7 +44,22 @@ else
   echo ""
   echo "==> Packaging as .wgt (unsigned)..."
   rm -f CableJack.wgt
-  zip -r CableJack.wgt . -x "*.wgt" -x ".tproject"
+  if command -v zip &>/dev/null; then
+    zip -r CableJack.wgt . -x "*.wgt" -x ".tproject"
+  elif command -v powershell.exe &>/dev/null; then
+    # Git Bash on Windows: use PowerShell Compress-Archive
+    # pwd -W gives the Windows-style path (C:\...) that PowerShell expects
+    SRC_WIN=$(pwd -W)
+    OUT_WIN="${SRC_WIN}\\CableJack.wgt"
+    powershell.exe -NoProfile -Command "
+      Get-ChildItem -Path '${SRC_WIN}' |
+        Where-Object { \$_.Name -notlike '*.wgt' -and \$_.Name -ne '.tproject' } |
+        Compress-Archive -DestinationPath '${OUT_WIN}' -Force
+    "
+  else
+    echo "ERROR: neither 'zip' nor 'powershell.exe' found — cannot create .wgt." >&2
+    exit 1
+  fi
 fi
 
 WGT_FILE=$(find "$TIZEN_SRC" -maxdepth 1 -name "*.wgt" | head -1)
