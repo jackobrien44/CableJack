@@ -1,60 +1,35 @@
 #!/usr/bin/env bash
-# Builds the UI for Tizen and packages it as a .wgt file.
+# Packages the Tizen hosted web app launcher as a .wgt file.
+#
+# The .wgt is a thin manifest that points to https://cablejack.tv — no UI
+# build needed. Updates to the app are live as soon as you deploy; users
+# never need to reinstall.
 #
 # Prerequisites:
-#   - Node.js and npm installed
 #   - Tizen Studio CLI on PATH (provides the `tizen` command)
 #   - A developer certificate profile configured in Tizen Studio
 #     (Tizen Studio > Tools > Certificate Manager)
 #
 # Usage:
-#   ./scripts/build-tizen.sh [--skip-package]
+#   ./scripts/build-tizen.sh
 #
-# Flags:
-#   --skip-package   Build the dist only; do not run `tizen package`
-#                    (useful if you want to inspect the output first)
-#
-# Outputs:
-#   dist/CableJack.wgt  — signed widget package, ready to sideload
+# Output:
+#   tizen/CableJack.wgt  — signed widget package, ready to sideload
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$SCRIPT_DIR/.."
-UI="$ROOT/src/ui"
-DIST="$UI/dist"
-TIZEN_SRC="$ROOT/tizen"
-SKIP_PACKAGE=false
+TIZEN_SRC="$SCRIPT_DIR/../tizen"
 
-for arg in "$@"; do
-  [[ "$arg" == "--skip-package" ]] && SKIP_PACKAGE=true
-done
-
-echo "==> Building UI (mode: tizen)..."
-cd "$UI"
-npm run build -- --mode tizen
-
-echo "==> Copying Tizen manifest..."
-cp "$TIZEN_SRC/config.xml" "$DIST/config.xml"
-
-if [ -f "$TIZEN_SRC/icon.png" ]; then
-  cp "$TIZEN_SRC/icon.png" "$DIST/icon.png"
-else
-  echo "    WARNING: tizen/icon.png not found — add a 512x512 PNG icon before store submission."
-fi
-
-if [ "$SKIP_PACKAGE" = true ]; then
-  echo ""
-  echo "Build output: $DIST"
-  echo "Skipping packaging (--skip-package)."
-  exit 0
+if [ ! -f "$TIZEN_SRC/icon.png" ]; then
+  echo "WARNING: tizen/icon.png not found — add a 512x512 PNG icon before packaging."
 fi
 
 echo "==> Packaging as .wgt..."
-cd "$DIST"
+cd "$TIZEN_SRC"
 tizen package --type wgt -- .
 
-WGT_FILE=$(find "$DIST" -maxdepth 1 -name "*.wgt" | head -1)
+WGT_FILE=$(find "$TIZEN_SRC" -maxdepth 1 -name "*.wgt" | head -1)
 
 echo ""
 echo "Package: $WGT_FILE"

@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <widget xmlns="http://www.w3.org/ns/widgets"
         xmlns:tizen="http://tizen.org/ns/widgets"
-        id="https://cablejack.app/CableJack"
+        id="https://cablejack.tv/CableJack"
         version="1.0.0">
 
   <tizen:application id="CableJack.App"
                      package="CableJack"
                      required_version="4.0"/>
 
-  <content src="index.html"/>
+  <content src="https://cablejack.tv"/>
 
   <feature name="http://tizen.org/feature/network.internet"/>
 

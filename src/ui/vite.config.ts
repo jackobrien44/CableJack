@@ -2,8 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-export default defineConfig(({ mode }) => ({
-  base: mode === 'tizen' ? './' : '/',
+export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
@@ -17,4 +16,4 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-}))
+})
