@@ -10,6 +10,8 @@ import { streamsApi } from '../api/streams'
 import { epgApi } from '../api/epg'
 import type { ProgrammeResponse } from '../types/api'
 import { usePlatform } from '../hooks/usePlatform'
+import { useAuth } from '../hooks/useAuth'
+import { LogOut } from 'lucide-react'
 
 const CONTROLS_HIDE_MS = 4000
 
@@ -19,6 +21,7 @@ export default function PlayerPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { isTV } = usePlatform()
+  const { logout } = useAuth()
 
   function goBack() {
     if (location.key !== 'default') navigate(-1)
@@ -310,6 +313,19 @@ export default function PlayerPage() {
               <div className="overflow-y-auto divide-y divide-gray-800">
                 {upcomingList.map(p => <ScheduleRow key={p.id} programme={p} />)}
               </div>
+            </div>
+          )}
+
+          {/* Sign out — mobile only; desktop uses the nav sidebar, TV uses TVLayout */}
+          {!isTV && (
+            <div className="md:hidden px-5 py-4 border-t border-gray-800 shrink-0">
+              <button
+                onClick={logout}
+                className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign out
+              </button>
             </div>
           )}
         </div>
