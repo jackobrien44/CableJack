@@ -71,6 +71,7 @@ jobs:
           SEMVER="${SEMVER#v}"
           sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$SEMVER\"/" webos/appinfo.json
           sed -i "s/version=\"[^\"]*\"/version=\"$SEMVER\"/" tizen/config.xml
+          sed -i "s/versionName \"[^\"]*\"/versionName \"$SEMVER\"/" android/app/build.gradle
 
       - name: Build Tizen .wgt
         run: bash scripts/build-tizen.sh
@@ -81,13 +82,35 @@ jobs:
       - name: Build WebOS .ipk
         run: bash scripts/build-webos.sh
 
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.7'
+
+      - name: Generate Android icons
+        run: |
+          rsvg-convert -w 320 -h 180 src/ui/public/favicon.svg -o android/app/src/main/res/drawable/banner.png
+          rsvg-convert -w 96  -h 96  src/ui/public/favicon.svg -o android/app/src/main/res/drawable/ic_launcher.png
+          rm android/app/src/main/res/drawable/banner.xml
+          rm android/app/src/main/res/drawable/ic_launcher.xml
+
+      - name: Build Android APK
+        run: gradle -p android assembleDebug
+
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload ${{ github.event.inputs.version }} \
             tizen/CableJack.wgt \
-            webos/*.ipk
+            webos/*.ipk \
+            android/app/build/outputs/apk/debug/app-debug.apk
 
   publish:
     name: Publish image
