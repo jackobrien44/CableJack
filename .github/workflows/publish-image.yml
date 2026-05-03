@@ -46,3 +46,19 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
             VITE_APP_VERSION=${{ inputs.version || format('sha-{0}', github.sha) }}
+
+  deploy:
+    name: Deploy to Hetzner
+    needs: build-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            docker compose -f /cablejack/docker-compose.yml pull
+            docker compose -f /cablejack/docker-compose.yml up -d
