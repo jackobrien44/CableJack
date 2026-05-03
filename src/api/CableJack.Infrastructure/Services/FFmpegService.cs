@@ -15,6 +15,7 @@ namespace CableJack.Infrastructure.Services
     public sealed class FFmpegService : IFFmpegService, IDisposable
     {
         private readonly ConcurrentDictionary<int, Process> _processes = new();
+        private readonly ConcurrentDictionary<int, List<string>> _stderrBuffers = new();
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly StreamingSettings _settings;
         private readonly string _outputRoot;
@@ -45,6 +46,9 @@ namespace CableJack.Infrastructure.Services
                 $"-i \"{sourceUrl}\"",
                 "-c:v copy",
                 "-c:a aac",
+                "-profile:a aac_low",
+                "-ar 48000",
+                "-ac 2",
                 "-b:a 128k",
                 "-f hls",
                 $"-hls_time {_settings.HlsTime}",
@@ -67,7 +71,13 @@ namespace CableJack.Infrastructure.Services
                 EnableRaisingEvents = true,
             };
 
-            process.ErrorDataReceived += (_, e) => { if (e.Data != null) _logger.LogDebug("[ffmpeg:{StreamId}] {Line}", streamId, e.Data); };
+            var stderrLines = _stderrBuffers[streamId] = [];
+            process.ErrorDataReceived += (_, e) =>
+            {
+                if (e.Data == null) return;
+                _logger.LogDebug("[ffmpeg:{StreamId}] {Line}", streamId, e.Data);
+                lock (stderrLines) stderrLines.Add(e.Data);
+            };
             process.Exited += (_, _) => _ = OnProcessExitedAsync(streamId);
             process.Start();
             process.BeginErrorReadLine();
@@ -103,6 +113,7 @@ namespace CableJack.Infrastructure.Services
 
         public async Task StopAsync(int streamId)
         {
+            _stderrBuffers.TryRemove(streamId, out _);
             if (_processes.TryRemove(streamId, out var process))
             {
                 if (!process.HasExited)
@@ -117,6 +128,7 @@ namespace CableJack.Infrastructure.Services
 
         public async Task PauseAsync(int streamId)
         {
+            _stderrBuffers.TryRemove(streamId, out _);
             if (_processes.TryRemove(streamId, out var process))
             {
                 if (!process.HasExited)
@@ -158,7 +170,12 @@ namespace CableJack.Infrastructure.Services
             var exitCode = process.ExitCode;
             process.Dispose();
 
+            _stderrBuffers.TryRemove(streamId, out var stderr);
+
             _logger.LogInformation("[stream:{StreamId}] ffmpeg exited with code {ExitCode}", streamId, exitCode);
+            if (exitCode != 0 && stderr is { Count: > 0 })
+                _logger.LogWarning("[stream:{StreamId}] ffmpeg stderr:\n{Stderr}", streamId, string.Join('\n', stderr));
+
             await UpdateStreamAsync(streamId, exitCode == 0 ? StreamStatus.Stopped : StreamStatus.Error);
         }
 
