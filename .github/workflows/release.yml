@@ -118,7 +118,6 @@ jobs:
     uses: ./.github/workflows/publish-image.yml
     with:
       version: ${{ github.event.inputs.version }}
-    secrets: inherit
     permissions:
       contents: read
       packages: write
