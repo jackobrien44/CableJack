@@ -17,8 +17,8 @@
     "hls.js": "^1.6.16",
     "lucide-react": "^1.14.0",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5",
-    "react-router-dom": "^7.14.2",
+    "react-dom": "^19.2.6",
+    "react-router-dom": "^7.15.0",
     "recharts": "^3.8.1",
     "sonner": "^2.0.7"
   },
