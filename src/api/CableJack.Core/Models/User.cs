@@ -9,6 +9,7 @@ namespace CableJack.Core.Models
         public required string PasswordHash { get; set; }
         public required bool IsActive { get; set; }
         public required UserRole Role { get; set; }
+        public bool IsChatEnabled { get; set; }
         public required DateTime CreatedAt { get; set; }
         public DateTime? ModifiedAt { get; set; }
         public DateTime? LastLoginAt { get; set; }

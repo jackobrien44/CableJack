@@ -33,6 +33,7 @@ namespace CableJack.Infrastructure.Services
                 Username = user.Username,
                 IsActive = user.IsActive,
                 Role = user.Role,
+                IsChatEnabled = user.IsChatEnabled,
                 CreatedAt = user.CreatedAt,
                 ModifiedAt = user.ModifiedAt,
                 LastLoginAt = user.LastLoginAt,
@@ -49,6 +50,7 @@ namespace CableJack.Infrastructure.Services
                     Username = u.Username,
                     IsActive = u.IsActive,
                     Role = u.Role,
+                    IsChatEnabled = u.IsChatEnabled,
                     CreatedAt = u.CreatedAt,
                     ModifiedAt = u.ModifiedAt,
                     LastLoginAt = u.LastLoginAt,
@@ -66,6 +68,7 @@ namespace CableJack.Infrastructure.Services
                     Username = u.Username,
                     IsActive = u.IsActive,
                     Role = u.Role,
+                    IsChatEnabled = u.IsChatEnabled,
                     CreatedAt = u.CreatedAt,
                     ModifiedAt = u.ModifiedAt,
                     LastLoginAt = u.LastLoginAt,
@@ -80,6 +83,7 @@ namespace CableJack.Infrastructure.Services
 
             if (request.IsActive is not null) user.IsActive = request.IsActive.Value;
             if (request.Role is not null) user.Role = request.Role.Value;
+            if (request.IsChatEnabled is not null) user.IsChatEnabled = request.IsChatEnabled.Value;
             user.ModifiedAt = DateTime.UtcNow;
 
             await db.SaveChangesAsync();
@@ -90,6 +94,7 @@ namespace CableJack.Infrastructure.Services
                 Username = user.Username,
                 IsActive = user.IsActive,
                 Role = user.Role,
+                IsChatEnabled = user.IsChatEnabled,
                 CreatedAt = user.CreatedAt,
                 ModifiedAt = user.ModifiedAt,
                 LastLoginAt = user.LastLoginAt,

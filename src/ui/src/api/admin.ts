@@ -4,6 +4,7 @@ import type { AuditLogDto, PagedResult, UserResponse, SystemSettingsDto, StreamR
 export interface UpdateUserRequest {
   isActive?: boolean
   role?: 'User' | 'Administrator'
+  isChatEnabled?: boolean
 }
 
 export interface CreateUserRequest {

@@ -38,6 +38,8 @@ public static class ServiceExtensions
         Stripe.StripeConfiguration.ApiKey = configuration["Stripe:SecretKey"];
         services.AddScoped<IBillingService, BillingService>();
         services.AddHttpContextAccessor();
+        services.AddSignalR();
+        services.AddHostedService<CableJack.Infrastructure.BackgroundServices.ChatCleanupService>();
 
         services.AddRateLimiter(options =>
         {
@@ -81,7 +83,8 @@ public static class ServiceExtensions
                     "http://localhost:5173",
                     "http://localhost:8080")
                       .AllowAnyMethod()
-                      .AllowAnyHeader();
+                      .AllowAnyHeader()
+                      .AllowCredentials();
             });
         });
 
@@ -105,6 +108,20 @@ public static class ServiceExtensions
                     ValidAudience = jwtSettings["Audience"],
                     IssuerSigningKey = new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(jwtSettings["Key"]!)),
+                };
+                // SignalR sends the token as a query param for WebSocket connections
+                options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var token = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(token) &&
+                            context.Request.Path.StartsWithSegments("/hubs"))
+                        {
+                            context.Token = token;
+                        }
+                        return Task.CompletedTask;
+                    }
                 };
             });
 

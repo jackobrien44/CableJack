@@ -6,5 +6,6 @@ namespace CableJack.Core.DTOs
     {
         public bool? IsActive { get; set; }
         public UserRole? Role { get; set; }
+        public bool? IsChatEnabled { get; set; }
     }
 }

@@ -19,6 +19,7 @@ namespace CableJack.Infrastructure.Data
         public DbSet<SystemSetting> SystemSettings { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<UserSubscription> UserSubscriptions { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -127,6 +128,21 @@ namespace CableJack.Infrastructure.Data
 
             modelBuilder.Entity<UserSubscription>()
                 .HasIndex(us => us.StripeSubscriptionId);
+
+            modelBuilder.Entity<ChatMessage>()
+                .HasOne(m => m.Channel)
+                .WithMany()
+                .HasForeignKey(m => m.ChannelId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ChatMessage>()
+                .HasOne(m => m.User)
+                .WithMany()
+                .HasForeignKey(m => m.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ChatMessage>()
+                .HasIndex(m => new { m.ChannelId, m.SentAt });
         }
 
     }

@@ -129,6 +129,7 @@ namespace CableJack.Infrastructure.Services
                     Username = user.Username,
                     IsActive = user.IsActive,
                     Role = user.Role,
+                    IsChatEnabled = user.IsChatEnabled,
                     CreatedAt = user.CreatedAt,
                     ModifiedAt = user.ModifiedAt,
                     LastLoginAt = user.LastLoginAt,

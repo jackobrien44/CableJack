@@ -1769,6 +1769,7 @@ function UsersTab() {
               <th className="text-left px-4 py-3 text-gray-400 font-medium">Username</th>
               <th className="text-left px-4 py-3 text-gray-400 font-medium">Role</th>
               <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
+              <th className="text-left px-4 py-3 text-gray-400 font-medium">Chat</th>
               <th className="text-left px-4 py-3 text-gray-400 font-medium">Joined</th>
               <th className="px-4 py-3" />
             </tr>
@@ -1789,6 +1790,10 @@ function UsersTab() {
                 onToggleActive={() => updateUser.mutate({
                   userId: user.id,
                   body: { isActive: !user.isActive },
+                })}
+                onToggleChat={() => updateUser.mutate({
+                  userId: user.id,
+                  body: { isChatEnabled: !user.isChatEnabled },
                 })}
                 onResetPassword={() => setResetPasswordUserId(user.id)}
                 onCancelResetPassword={() => setResetPasswordUserId(null)}
@@ -1892,6 +1897,7 @@ interface UserRowProps {
   resetPasswordPending: boolean
   onToggleRole: () => void
   onToggleActive: () => void
+  onToggleChat: () => void
   onResetPassword: () => void
   onCancelResetPassword: () => void
   onConfirmResetPassword: (pw: string) => void
@@ -1900,7 +1906,7 @@ interface UserRowProps {
 
 function UserRow({
   user, isSelf, resettingPassword, resetPasswordError, resetPasswordPending,
-  onToggleRole, onToggleActive, onResetPassword, onCancelResetPassword, onConfirmResetPassword, onDelete,
+  onToggleRole, onToggleActive, onToggleChat, onResetPassword, onCancelResetPassword, onConfirmResetPassword, onDelete,
 }: UserRowProps) {
   const [newPassword, setNewPassword] = useState('')
 
@@ -1941,6 +1947,18 @@ function UserRow({
             } disabled:opacity-40 disabled:cursor-not-allowed`}
           >
             {user.isActive ? 'Active' : 'Inactive'}
+          </button>
+        </td>
+        <td className="px-4 py-3">
+          <button
+            onClick={onToggleChat}
+            className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+              user.isChatEnabled
+                ? 'bg-violet-600/30 text-violet-300 hover:bg-violet-600/50'
+                : 'bg-gray-700 text-gray-500 hover:bg-gray-600 hover:text-gray-300'
+            }`}
+          >
+            {user.isChatEnabled ? 'Enabled' : 'Disabled'}
           </button>
         </td>
         <td className="px-4 py-3 text-gray-400 text-xs">
