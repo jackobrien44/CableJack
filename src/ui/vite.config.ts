@@ -14,6 +14,11 @@ export default defineConfig({
         target: 'https://localhost:7248',
         secure: false,
       },
+      '/hubs': {
+        target: 'https://localhost:7248',
+        secure: false,
+        ws: true,
+      },
     },
   },
 })
