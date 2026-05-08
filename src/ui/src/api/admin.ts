@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { AuditLogDto, PagedResult, UserResponse, SystemSettingsDto, StreamResponse, DashboardStatsDto, WatchSessionDto, TopChannelDto, UserStatDto } from '../types/api'
+import type { AuditLogDto, PagedResult, UserResponse, SystemSettingsDto, StreamResponse, DashboardStatsDto, WatchSessionDto, TopChannelDto, UserStatDto, UserBillingDto } from '../types/api'
 
 export interface UpdateUserRequest {
   isActive?: boolean
@@ -69,4 +69,13 @@ export const adminApi = {
     if (action) params.set('action', action)
     return api.get<PagedResult<AuditLogDto>>(`/admin/audit?${params}`)
   },
+
+  getAllBillingStates: () =>
+    api.get<UserBillingDto[]>('/admin/billing/users'),
+
+  setFreeAccess: (userId: number, freeAccess: boolean, reason?: string) =>
+    api.put<void>(`/admin/billing/users/${userId}/free-access`, { freeAccess, reason }),
+
+  setTrialExpiry: (userId: number, trialExpiresAt: string | null) =>
+    api.put<void>(`/admin/billing/users/${userId}/trial`, { trialExpiresAt }),
 }

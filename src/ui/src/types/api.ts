@@ -143,6 +143,36 @@ export interface AuditLogDto {
 export interface SystemSettingsDto {
   registrationMode: 'Open' | 'InviteOnly' | 'Disabled'
   maxConcurrentStreams: number
+  paymentsEnabled: boolean
+  paymentsEnforced: boolean
+  stripePublishableKey: string | null
+  stripePriceId: string | null
+}
+
+export type SubscriptionStatus = 'None' | 'Trialing' | 'Active' | 'PastDue' | 'Canceled' | 'Unpaid'
+
+export interface UserBillingDto {
+  userId: number
+  username: string
+  status: SubscriptionStatus
+  freeAccess: boolean
+  freeAccessReason: string | null
+  trialExpiresAt: string | null
+  currentPeriodEnd: string | null
+  canceledAt: string | null
+  stripeCustomerId: string | null
+  stripeSubscriptionId: string | null
+}
+
+export interface AccessCheckResult {
+  hasAccess: boolean
+  isOnTrial: boolean
+  isFreeAccess: boolean
+  isSubscribed: boolean
+  enforcementActive: boolean
+  trialExpiresAt: string | null
+  currentPeriodEnd: string | null
+  hasStripeCustomer: boolean
 }
 
 export interface ImportResult {
