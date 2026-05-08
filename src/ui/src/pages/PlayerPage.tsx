@@ -32,6 +32,8 @@ export default function PlayerPage() {
   const [resolution, setResolution] = useState<string | null>(null)
   const [showControls, setShowControls] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isBuffering, setIsBuffering] = useState(false)
+  const [isAtLive, setIsAtLive] = useState(true)
   const controlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<Hls | null>(null)
@@ -127,6 +129,32 @@ export default function PlayerPage() {
       hlsRef.current = null
     }
   }, [streamUrl])
+
+  // Poll live edge every 2s to detect drift
+  useEffect(() => {
+    if (!streamUrl) return
+    const interval = setInterval(() => {
+      const video = videoRef.current
+      if (!video) return
+      const hls = hlsRef.current
+      const liveEdge = hls
+        ? (hls.liveSyncPosition ?? null)
+        : video.seekable.length > 0 ? video.seekable.end(video.seekable.length - 1) : null
+      if (liveEdge === null) return
+      setIsAtLive(liveEdge - video.currentTime < 15)
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [streamUrl])
+
+  const jumpToLive = useCallback(() => {
+    const video = videoRef.current
+    const hls = hlsRef.current
+    const liveEdge = hls
+      ? (hls.liveSyncPosition ?? null)
+      : video && video.seekable.length > 0 ? video.seekable.end(video.seekable.length - 1) : null
+    if (video && liveEdge !== null) video.currentTime = liveEdge
+    setIsAtLive(true)
+  }, [])
 
   const toggleFullscreen = useCallback(() => {
     const player = playerRef.current
@@ -248,6 +276,8 @@ export default function PlayerPage() {
           ref={videoRef}
           className="w-full h-full object-contain"
           playsInline
+          onWaiting={() => setIsBuffering(true)}
+          onPlaying={() => setIsBuffering(false)}
           onPause={() => {
             if (!isRunning) return
             ffmpegPaused.current = true
@@ -259,6 +289,13 @@ export default function PlayerPage() {
             resume.mutate()
           }}
         />
+
+        {/* Buffering spinner */}
+        {isBuffering && !isStarting && (
+          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+            <div className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+          </div>
+        )}
 
         {/* Controls overlay */}
         <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
@@ -274,10 +311,18 @@ export default function PlayerPage() {
                 <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
               </svg>
             </button>
-            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-red-600 text-white text-xs font-bold rounded">
-              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            <span className={`flex items-center gap-1.5 px-2 py-0.5 text-xs font-bold rounded transition-colors ${isAtLive ? 'bg-red-600 text-white' : 'bg-gray-600 text-gray-300'}`}>
+              {isAtLive && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
               LIVE
             </span>
+            {!isAtLive && (
+              <button
+                onClick={jumpToLive}
+                className="text-xs text-white bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded transition-colors"
+              >
+                Jump to live
+              </button>
+            )}
             {resolution && <span className="text-gray-300 text-xs">{resolution}</span>}
           </div>
 
