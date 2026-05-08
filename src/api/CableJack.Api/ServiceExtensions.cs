@@ -35,6 +35,7 @@ public static class ServiceExtensions
         services.AddScoped<ISettingsService, SettingsService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IAuditService, AuditService>();
+        Stripe.StripeConfiguration.ApiKey = configuration["Stripe:SecretKey"];
         services.AddScoped<IBillingService, BillingService>();
         services.AddHttpContextAccessor();
 
