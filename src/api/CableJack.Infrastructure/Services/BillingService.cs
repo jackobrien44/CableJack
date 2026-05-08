@@ -1,4 +1,3 @@
-using System.Text.Json;
 using CableJack.Core.DTOs;
 using CableJack.Core.Enums;
 using CableJack.Core.Interfaces;
@@ -274,10 +273,11 @@ namespace CableJack.Infrastructure.Services
 
             sub.StripeSubscriptionId = stripeSub.Id;
             sub.Status = MapStripeStatus(stripeSub.Status);
-            sub.CurrentPeriodEnd = GetCurrentPeriodEnd(stripeSub);
             sub.CanceledAt = stripeSub.CanceledAt;
             sub.ModifiedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
+            // CurrentPeriodEnd is intentionally not set here — invoice.payment_succeeded
+            // owns that field via Invoice.PeriodEnd, which is a properly mapped property.
         }
 
         private async Task HandleSubscriptionDeletedAsync(Subscription stripeSub)
@@ -327,27 +327,6 @@ namespace CableJack.Infrastructure.Services
             db.UserSubscriptions.Add(sub);
             await db.SaveChangesAsync();
             return sub;
-        }
-
-        // current_period_end is not directly mapped in Stripe.net 51 — read from raw JSON
-        private static DateTime? GetCurrentPeriodEnd(StripeEntity entity)
-        {
-            try
-            {
-                var json = entity.RawJsonElement;
-                if (json.HasValue &&
-                    json.Value.TryGetProperty("current_period_end", out var prop) &&
-                    prop.ValueKind == JsonValueKind.Number)
-                {
-                    return DateTimeOffset.FromUnixTimeSeconds(prop.GetInt64()).UtcDateTime;
-                }
-            }
-            catch (Exception)
-            {
-                // RawJsonElement may not be initialised in unit-test scenarios
-            }
-
-            return null;
         }
 
         private static SubscriptionStatus MapStripeStatus(string status) => status switch
