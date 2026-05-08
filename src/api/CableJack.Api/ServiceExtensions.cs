@@ -125,11 +125,7 @@ public static class ServiceExtensions
                 };
             });
 
-        services.AddAuthorization(options =>
-        {
-            options.AddPolicy("ChatEnabled", policy =>
-                policy.RequireClaim("chat", "enabled"));
-        });
+        services.AddAuthorization();
 
         return services;
     }

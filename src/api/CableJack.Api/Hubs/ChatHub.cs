@@ -8,13 +8,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CableJack.Api.Hubs
 {
-    [Authorize(Policy = "ChatEnabled")]
+    [Authorize]
     public class ChatHub(CableJackDbContext db) : Hub
     {
         private static readonly ConcurrentDictionary<int, Queue<DateTime>> _rateLimits = new();
 
         public async Task JoinChannel(int channelId)
         {
+            var userId = int.Parse(Context.User!.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var chatEnabled = await db.Users
+                .Where(u => u.Id == userId)
+                .Select(u => u.IsChatEnabled)
+                .FirstOrDefaultAsync();
+
+            if (!chatEnabled)
+            {
+                Context.Abort();
+                return;
+            }
+
             await Groups.AddToGroupAsync(Context.ConnectionId, GroupName(channelId));
 
             var cutoff = DateTime.UtcNow.AddHours(-24);
