@@ -38,6 +38,7 @@ export default function PlayerPage() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isBuffering, setIsBuffering] = useState(false)
   const [isAtLive, setIsAtLive] = useState(true)
+  const [isPaused, setIsPaused] = useState(false)
   const controlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const hlsRef = useRef<Hls | null>(null)
@@ -281,8 +282,9 @@ export default function PlayerPage() {
           className="w-full h-full object-contain"
           playsInline
           onWaiting={() => setIsBuffering(true)}
-          onPlaying={() => setIsBuffering(false)}
+          onPlaying={() => { setIsBuffering(false); setIsPaused(false) }}
           onPause={() => {
+            setIsPaused(true)
             if (!isRunning) return
             ffmpegPaused.current = true
             pause.mutate()
@@ -332,6 +334,23 @@ export default function PlayerPage() {
 
           {/* Bottom bar */}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-4 pb-3 pt-8 flex items-center justify-end gap-3 pointer-events-auto">
+            <button
+              onClick={() => {
+                const video = videoRef.current
+                if (!video) return
+                if (video.paused) video.play().catch(() => {})
+                else video.pause()
+              }}
+              className="text-white hover:text-gray-300 transition-colors p-1 mr-auto"
+              aria-label={isPaused ? 'Play' : 'Pause'}
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                {isPaused
+                  ? <path d="M8 5v14l11-7z"/>
+                  : <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                }
+              </svg>
+            </button>
             <button
               onClick={() => setShowSidebar(v => !v)}
               className="text-white hover:text-gray-300 transition-colors p-1"
