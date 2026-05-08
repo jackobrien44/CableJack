@@ -318,7 +318,7 @@ export default function PlayerPage() {
             {!isAtLive && (
               <button
                 onClick={jumpToLive}
-                className="text-xs text-white bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded transition-colors"
+                className="text-xs text-white bg-violet-600 hover:bg-violet-500 px-2.5 py-1 rounded-lg transition-colors font-semibold"
               >
                 Jump to live
               </button>
