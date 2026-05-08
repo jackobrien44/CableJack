@@ -9,9 +9,9 @@ import { categoriesApi, type CreateCategoryRequest } from '../api/categories'
 import { epgApi } from '../api/epg'
 import { providersApi, type CreateProviderRequest } from '../api/providers'
 import { useAuth } from '../hooks/useAuth'
-import type { AuditLogDto, ChannelResponse, ImportResult, ProviderResponse, SystemSettingsDto, UserResponse } from '../types/api'
+import type { AuditLogDto, ChannelResponse, ImportResult, ProviderResponse, SystemSettingsDto, UserBillingDto, SubscriptionStatus, UserResponse } from '../types/api'
 
-type Tab = 'dashboard' | 'imports' | 'providers' | 'categories' | 'channels' | 'users' | 'history' | 'audit' | 'settings'
+type Tab = 'dashboard' | 'imports' | 'providers' | 'categories' | 'channels' | 'users' | 'history' | 'audit' | 'settings' | 'billing'
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('dashboard')
@@ -28,7 +28,7 @@ export default function AdminPage() {
             className="w-full appearance-none bg-gray-800 border border-gray-700 rounded-lg pl-3 pr-8 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
             style={{ colorScheme: 'dark' }}
           >
-            {(['dashboard', 'imports', 'providers', 'categories', 'channels', 'users', 'history', 'audit', 'settings'] as Tab[]).map(t => (
+            {(['dashboard', 'imports', 'providers', 'categories', 'channels', 'users', 'history', 'audit', 'settings', 'billing'] as Tab[]).map(t => (
               <option key={t} value={t}>{t[0].toUpperCase() + t.slice(1)}</option>
             ))}
           </select>
@@ -39,7 +39,7 @@ export default function AdminPage() {
 
         {/* Desktop: pill tabs */}
         <div className="hidden sm:flex gap-1 bg-gray-800 rounded-lg p-1 w-fit">
-          {(['dashboard', 'imports', 'providers', 'categories', 'channels', 'users', 'history', 'audit', 'settings'] as Tab[]).map(t => (
+          {(['dashboard', 'imports', 'providers', 'categories', 'channels', 'users', 'history', 'audit', 'settings', 'billing'] as Tab[]).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -63,6 +63,7 @@ export default function AdminPage() {
         {tab === 'history' && <HistoryTab />}
         {tab === 'audit' && <AuditTab />}
         {tab === 'settings' && <SettingsTab />}
+        {tab === 'billing' && <BillingTab />}
       </div>
     </div>
   )
@@ -769,9 +770,17 @@ function SettingsTab() {
 
   const [registrationMode, setRegistrationMode] = useState<SystemSettingsDto['registrationMode'] | null>(null)
   const [maxConcurrentStreams, setMaxConcurrentStreams] = useState<number | null>(null)
+  const [paymentsEnabled, setPaymentsEnabled] = useState<boolean | null>(null)
+  const [paymentsEnforced, setPaymentsEnforced] = useState<boolean | null>(null)
+  const [stripePublishableKey, setStripePublishableKey] = useState<string | null>(null)
+  const [stripePriceId, setStripePriceId] = useState<string | null>(null)
 
   const currentMode = registrationMode ?? settings?.registrationMode ?? 'Open'
   const currentMax = maxConcurrentStreams ?? settings?.maxConcurrentStreams ?? 2
+  const currentPaymentsEnabled = paymentsEnabled ?? settings?.paymentsEnabled ?? false
+  const currentPaymentsEnforced = paymentsEnforced ?? settings?.paymentsEnforced ?? false
+  const currentStripePublishableKey = stripePublishableKey ?? settings?.stripePublishableKey ?? ''
+  const currentStripePriceId = stripePriceId ?? settings?.stripePriceId ?? ''
 
   const update = useMutation({
     mutationFn: (body: SystemSettingsDto) => adminApi.updateSettings(body),
@@ -779,6 +788,10 @@ function SettingsTab() {
       queryClient.setQueryData(['admin-settings'], data)
       setRegistrationMode(null)
       setMaxConcurrentStreams(null)
+      setPaymentsEnabled(null)
+      setPaymentsEnforced(null)
+      setStripePublishableKey(null)
+      setStripePriceId(null)
       toast.success('Settings saved.')
     },
   })
@@ -787,7 +800,22 @@ function SettingsTab() {
 
   const dirty =
     (registrationMode !== null && registrationMode !== settings?.registrationMode) ||
-    (maxConcurrentStreams !== null && maxConcurrentStreams !== settings?.maxConcurrentStreams)
+    (maxConcurrentStreams !== null && maxConcurrentStreams !== settings?.maxConcurrentStreams) ||
+    (paymentsEnabled !== null && paymentsEnabled !== settings?.paymentsEnabled) ||
+    (paymentsEnforced !== null && paymentsEnforced !== settings?.paymentsEnforced) ||
+    (stripePublishableKey !== null && stripePublishableKey !== (settings?.stripePublishableKey ?? '')) ||
+    (stripePriceId !== null && stripePriceId !== (settings?.stripePriceId ?? ''))
+
+  function handleSave() {
+    update.mutate({
+      registrationMode: currentMode,
+      maxConcurrentStreams: currentMax,
+      paymentsEnabled: currentPaymentsEnabled,
+      paymentsEnforced: currentPaymentsEnabled ? currentPaymentsEnforced : false,
+      stripePublishableKey: currentStripePublishableKey || null,
+      stripePriceId: currentStripePriceId || null,
+    })
+  }
 
   return (
     <div className="max-w-md space-y-6">
@@ -823,9 +851,59 @@ function SettingsTab() {
         </div>
       </div>
 
+      <div className="bg-gray-800 rounded-xl p-5 space-y-4">
+        <h2 className="text-white font-medium">Payments</h2>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={currentPaymentsEnabled}
+            onChange={e => {
+              setPaymentsEnabled(e.target.checked)
+              if (!e.target.checked) setPaymentsEnforced(false)
+            }}
+            className="w-4 h-4 accent-violet-600"
+          />
+          <span className="text-sm text-white">Payments enabled</span>
+        </label>
+        <label className={`flex items-center gap-3 ${currentPaymentsEnabled ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}>
+          <input
+            type="checkbox"
+            checked={currentPaymentsEnforced}
+            disabled={!currentPaymentsEnabled}
+            onChange={e => setPaymentsEnforced(e.target.checked)}
+            className="w-4 h-4 accent-violet-600"
+          />
+          <span className="text-sm text-white">Enforce payments (paywall active)</span>
+        </label>
+        {currentPaymentsEnabled && (
+          <>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Stripe publishable key</label>
+              <input
+                type="text"
+                value={currentStripePublishableKey}
+                onChange={e => setStripePublishableKey(e.target.value)}
+                placeholder="pk_live_..."
+                className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500 w-full font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Stripe price ID</label>
+              <input
+                type="text"
+                value={currentStripePriceId}
+                onChange={e => setStripePriceId(e.target.value)}
+                placeholder="price_..."
+                className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500 w-full font-mono"
+              />
+            </div>
+          </>
+        )}
+      </div>
+
       {update.error && <p className="text-red-400 text-sm">{update.error.message}</p>}
       <button
-        onClick={() => update.mutate({ registrationMode: currentMode, maxConcurrentStreams: currentMax })}
+        onClick={handleSave}
         disabled={!dirty || update.isPending}
         className="bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors"
       >
@@ -2022,6 +2100,108 @@ function AuditTab() {
         </div>
       )}
     </div>
+  )
+}
+
+// ── Billing tab ───────────────────────────────────────────────────────────────
+
+const STATUS_COLORS: Record<SubscriptionStatus, string> = {
+  Active: 'bg-green-900/50 text-green-400',
+  Trialing: 'bg-blue-900/50 text-blue-400',
+  PastDue: 'bg-amber-900/50 text-amber-400',
+  Canceled: 'bg-red-900/50 text-red-400',
+  Unpaid: 'bg-red-900/50 text-red-400',
+  None: 'bg-gray-700 text-gray-400',
+}
+
+function BillingTab() {
+  const queryClient = useQueryClient()
+
+  const { data: users, isLoading } = useQuery({
+    queryKey: ['admin-billing'],
+    queryFn: adminApi.getAllBillingStates,
+  })
+
+  const setFreeAccess = useMutation({
+    mutationFn: ({ userId, freeAccess }: { userId: number; freeAccess: boolean }) =>
+      adminApi.setFreeAccess(userId, freeAccess),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-billing'] }); toast.success('Updated.') },
+  })
+
+  const setTrial = useMutation({
+    mutationFn: ({ userId, trialExpiresAt }: { userId: number; trialExpiresAt: string | null }) =>
+      adminApi.setTrialExpiry(userId, trialExpiresAt),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-billing'] }); toast.success('Trial expiry updated.') },
+  })
+
+  if (isLoading) return <div className="text-gray-400 text-sm">Loading…</div>
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-gray-400 text-xs border-b border-gray-700">
+            <th className="text-left pb-2 pr-4">User</th>
+            <th className="text-left pb-2 pr-4">Status</th>
+            <th className="text-left pb-2 pr-4">Trial expires</th>
+            <th className="text-left pb-2 pr-4">Period end</th>
+            <th className="text-left pb-2 pr-4">Free access</th>
+            <th className="text-left pb-2"></th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-700/50">
+          {users?.map(u => (
+            <BillingRow
+              key={`${u.userId}-${u.trialExpiresAt ?? ''}`}
+              user={u}
+              onSetTrial={date => setTrial.mutate({ userId: u.userId, trialExpiresAt: date })}
+              onToggleFreeAccess={() => setFreeAccess.mutate({ userId: u.userId, freeAccess: !u.freeAccess })}
+            />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function BillingRow({ user, onSetTrial, onToggleFreeAccess }: { user: UserBillingDto; onSetTrial: (d: string | null) => void; onToggleFreeAccess: () => void }) {
+  const [trialDate, setTrialDate] = useState(user.trialExpiresAt ? user.trialExpiresAt.substring(0, 10) : '')
+
+  return (
+    <tr>
+      <td className="py-2.5 pr-4 text-white">{user.username}</td>
+      <td className="py-2.5 pr-4">
+        <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[user.status]}`}>{user.status}</span>
+      </td>
+      <td className="py-2.5 pr-4">
+        <input
+          type="date"
+          value={trialDate}
+          onChange={e => setTrialDate(e.target.value)}
+          onBlur={() => onSetTrial(trialDate ? new Date(trialDate).toISOString() : null)}
+          className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-violet-500"
+          style={{ colorScheme: 'dark' }}
+        />
+      </td>
+      <td className="py-2.5 pr-4 text-gray-300 text-xs">
+        {user.currentPeriodEnd ? new Date(user.currentPeriodEnd).toLocaleDateString() : '—'}
+      </td>
+      <td className="py-2.5 pr-4">
+        <button
+          onClick={onToggleFreeAccess}
+          className={`text-xs px-2.5 py-1 rounded-lg transition-colors ${user.freeAccess ? 'bg-violet-600 hover:bg-violet-500 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'}`}
+        >
+          {user.freeAccess ? 'Granted' : 'Grant'}
+        </button>
+      </td>
+      <td className="py-2.5">
+        {user.stripeCustomerId && (
+          <a href={`https://dashboard.stripe.com/customers/${user.stripeCustomerId}`} target="_blank" rel="noopener noreferrer" className="text-xs text-violet-400 hover:text-violet-300">
+            Stripe ↗
+          </a>
+        )}
+      </td>
+    </tr>
   )
 }
 
