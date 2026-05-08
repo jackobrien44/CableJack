@@ -12,11 +12,7 @@ using Stripe;
 
 namespace CableJack.Infrastructure.Services
 {
-    public sealed class BillingService(
-        CableJackDbContext db,
-        IConfiguration configuration,
-        IAuditService auditService,
-        ILogger<BillingService> logger) : IBillingService
+    public sealed class BillingService(CableJackDbContext db, IConfiguration configuration, IAuditService auditService, ILogger<BillingService> logger) : IBillingService
     {
         private string WebhookSecret => configuration["Stripe:WebhookSecret"]
             ?? throw new InvalidOperationException("Stripe:WebhookSecret is not configured.");
