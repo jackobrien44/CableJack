@@ -18,6 +18,7 @@ namespace CableJack.Infrastructure.Data
         public DbSet<ChannelSource> ChannelSources { get; set; }
         public DbSet<SystemSetting> SystemSettings { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<UserSubscription> UserSubscriptions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -110,6 +111,22 @@ namespace CableJack.Infrastructure.Data
 
             modelBuilder.Entity<AuditLog>()
                 .HasIndex(a => a.Timestamp);
+
+            modelBuilder.Entity<UserSubscription>()
+                .HasOne(us => us.User)
+                .WithOne(u => u.Subscription)
+                .HasForeignKey<UserSubscription>(us => us.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserSubscription>()
+                .HasIndex(us => us.UserId)
+                .IsUnique();
+
+            modelBuilder.Entity<UserSubscription>()
+                .HasIndex(us => us.StripeCustomerId);
+
+            modelBuilder.Entity<UserSubscription>()
+                .HasIndex(us => us.StripeSubscriptionId);
         }
 
     }
