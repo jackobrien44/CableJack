@@ -67,7 +67,7 @@ export default function PlayerPage() {
     enabled: streamId !== null,
     refetchInterval: (query) => {
       const status = query.state.data?.status
-      return status === 'Starting' || status === 'Running' ? 2000 : false
+      return status === 'Starting' ? 2000 : false
     },
   })
 
