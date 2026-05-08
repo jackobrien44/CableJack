@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@microsoft/signalr": "^10.0.0",
     "@noriginmedia/norigin-spatial-navigation": "^3.1.0",
     "@tanstack/react-query": "^5.100.6",
     "@tanstack/react-virtual": "^3.13.24",

@@ -1,4 +1,5 @@
 using CableJack.Api;
+using CableJack.Api.Hubs;
 using CableJack.Api.Middleware;
 using Microsoft.AspNetCore.HttpOverrides;
 
@@ -43,6 +44,7 @@ app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<ChatHub>("/hubs/chat");
 app.MapFallbackToFile("index.html");
 
 app.Run();

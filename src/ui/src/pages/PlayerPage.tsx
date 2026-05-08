@@ -7,6 +7,7 @@ import { epgApi } from '../api/epg'
 import type { ProgrammeResponse } from '../types/api'
 import { usePlatform } from '../hooks/usePlatform'
 import { useBilling } from '../hooks/useBilling'
+import { ChatPanel } from '../components/ChatPanel'
 
 const CONTROLS_HIDE_MS = 4000
 
@@ -29,6 +30,7 @@ export default function PlayerPage() {
   const [startError, setStartError] = useState<string | null>(null)
   const ffmpegPaused = useRef(false)
   const [showSidebar, setShowSidebar] = useState(false)
+  const [sidebarTab, setSidebarTab] = useState<'schedule' | 'chat'>('schedule')
   const [resolution, setResolution] = useState<string | null>(null)
   const [showControls, setShowControls] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -375,6 +377,7 @@ export default function PlayerPage() {
           ? 'absolute right-0 top-0 z-30 h-full w-96 flex flex-col bg-gray-900/95 border-l border-gray-800 overflow-hidden'
           : 'w-full border-t md:w-80 xl:w-96 flex flex-col md:border-l md:border-t-0 border-gray-800 max-h-[55svh] md:max-h-none md:h-svh overflow-hidden'
         }>
+          {/* Channel + now playing */}
           <div className="px-5 py-4 border-b border-gray-800 shrink-0">
             <p className="text-white font-bold text-2xl mb-3">{stream?.channelName ?? '…'}</p>
             {nowPlaying ? (
@@ -392,12 +395,38 @@ export default function PlayerPage() {
             )}
           </div>
 
-          {upcomingList.length > 0 && (
-            <div className="flex flex-col overflow-hidden flex-1">
-              <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider px-5 py-3 shrink-0">Up Next</p>
-              <div className="overflow-y-auto divide-y divide-gray-800">
-                {upcomingList.map(p => <ScheduleRow key={p.id} programme={p} />)}
+          {/* Tab switcher */}
+          <div className="flex border-b border-gray-800 shrink-0">
+            {(['schedule', 'chat'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setSidebarTab(tab)}
+                className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                  sidebarTab === tab
+                    ? 'text-violet-400 border-b-2 border-violet-500'
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                {tab === 'schedule' ? 'Schedule' : 'Live Chat'}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          {sidebarTab === 'schedule' ? (
+            upcomingList.length > 0 ? (
+              <div className="flex flex-col overflow-hidden flex-1">
+                <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider px-5 py-3 shrink-0">Up Next</p>
+                <div className="overflow-y-auto divide-y divide-gray-800">
+                  {upcomingList.map(p => <ScheduleRow key={p.id} programme={p} />)}
+                </div>
               </div>
+            ) : (
+              <p className="text-gray-600 text-xs px-5 py-4">No upcoming programmes.</p>
+            )
+          ) : (
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <ChatPanel channelId={channelId} />
             </div>
           )}
         </div>
