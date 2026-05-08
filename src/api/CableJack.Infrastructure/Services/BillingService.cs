@@ -30,14 +30,16 @@ namespace CableJack.Infrastructure.Services
                 .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.UserId == userId);
 
+            var hasStripeCustomer = sub?.StripeCustomerId != null;
+
             if (sub?.FreeAccess == true)
-                return new AccessCheckResult { HasAccess = true, IsFreeAccess = true };
+                return new AccessCheckResult { HasAccess = true, IsFreeAccess = true, HasStripeCustomer = hasStripeCustomer };
 
             var enforcedStr = await db.SystemSettings.GetSettingAsync(SettingKeys.PaymentsEnforced);
             var enforced = enforcedStr == "true";
 
             if (!enforced)
-                return new AccessCheckResult { HasAccess = true, EnforcementActive = false };
+                return new AccessCheckResult { HasAccess = true, EnforcementActive = false, HasStripeCustomer = hasStripeCustomer };
 
             if (sub?.Status == SubscriptionStatus.Active && sub.CurrentPeriodEnd > DateTime.UtcNow)
                 return new AccessCheckResult
@@ -46,6 +48,7 @@ namespace CableJack.Infrastructure.Services
                     IsSubscribed = true,
                     EnforcementActive = true,
                     CurrentPeriodEnd = sub.CurrentPeriodEnd,
+                    HasStripeCustomer = hasStripeCustomer,
                 };
 
             if (sub?.TrialExpiresAt != null && sub.TrialExpiresAt > DateTime.UtcNow)
@@ -55,29 +58,10 @@ namespace CableJack.Infrastructure.Services
                     IsOnTrial = true,
                     EnforcementActive = true,
                     TrialExpiresAt = sub.TrialExpiresAt,
+                    HasStripeCustomer = hasStripeCustomer,
                 };
 
-            return new AccessCheckResult { HasAccess = false, EnforcementActive = true };
-        }
-
-        public async Task<BillingStatusResponse> GetBillingStatusAsync(int userId)
-        {
-            var access = await CheckAccessAsync(userId);
-            var sub = await db.UserSubscriptions
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.UserId == userId);
-
-            return new BillingStatusResponse
-            {
-                HasAccess = access.HasAccess,
-                IsOnTrial = access.IsOnTrial,
-                IsFreeAccess = access.IsFreeAccess,
-                IsSubscribed = access.IsSubscribed,
-                EnforcementActive = access.EnforcementActive,
-                TrialExpiresAt = access.TrialExpiresAt ?? sub?.TrialExpiresAt,
-                CurrentPeriodEnd = access.CurrentPeriodEnd ?? sub?.CurrentPeriodEnd,
-                HasStripeCustomer = sub?.StripeCustomerId != null,
-            };
+            return new AccessCheckResult { HasAccess = false, EnforcementActive = true, HasStripeCustomer = hasStripeCustomer };
         }
 
         public async Task<string> CreateCheckoutSessionAsync(int userId, string successUrl, string cancelUrl)

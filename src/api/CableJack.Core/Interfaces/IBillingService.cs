@@ -5,7 +5,6 @@ namespace CableJack.Core.Interfaces
     public interface IBillingService
     {
         Task<AccessCheckResult> CheckAccessAsync(int userId);
-        Task<BillingStatusResponse> GetBillingStatusAsync(int userId);
         Task<string> CreateCheckoutSessionAsync(int userId, string successUrl, string cancelUrl);
         Task<string> CreatePortalSessionAsync(int userId, string returnUrl);
         Task<bool> HandleWebhookAsync(string payload, string stripeSignature);

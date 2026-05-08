@@ -9,5 +9,6 @@ namespace CableJack.Core.DTOs
         public bool EnforcementActive { get; set; }
         public DateTime? TrialExpiresAt { get; set; }
         public DateTime? CurrentPeriodEnd { get; set; }
+        public bool HasStripeCustomer { get; set; }
     }
 }
