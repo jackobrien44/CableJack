@@ -13,7 +13,7 @@ namespace CableJack.Api.Controllers
     [Route("api/admin")]
     [Authorize(Roles = "Administrator")]
     public class AdminController(IUserService userService, IStreamService streamService, IChannelService channelService, IImportService importService, ISettingsService settingsService, IDashboardService dashboardService,
-        IAuditService audit, CableJackDbContext db) : ControllerBase
+        IAuditService audit, CableJackDbContext db, IBillingService billingService) : ControllerBase
     {
         [HttpGet("settings")]
         public async Task<ActionResult<SystemSettingsDto>> GetSettings()
@@ -199,6 +199,33 @@ namespace CableJack.Api.Controllers
             var result = await importService.ImportM3UAsync(stream, request.ProviderId);
             await audit.LogAsync("ImportCompleted", $"Imported {result.ChannelsCreated} channels from URL");
             return Ok(result);
+        }
+
+        [HttpGet("billing/users")]
+        public async Task<ActionResult<List<UserBillingDto>>> GetAllBillingStates()
+        {
+            return Ok(await billingService.GetAllUserBillingsAsync());
+        }
+
+        [HttpGet("billing/users/{userId:int}")]
+        public async Task<ActionResult<UserBillingDto>> GetUserBillingState(int userId)
+        {
+            var result = await billingService.GetUserBillingAsync(userId);
+            return result is null ? NotFound() : Ok(result);
+        }
+
+        [HttpPut("billing/users/{userId:int}/free-access")]
+        public async Task<IActionResult> SetFreeAccess(int userId, [FromBody] SetFreeAccessRequest request)
+        {
+            await billingService.SetFreeAccessAsync(userId, request.FreeAccess, request.Reason);
+            return NoContent();
+        }
+
+        [HttpPut("billing/users/{userId:int}/trial")]
+        public async Task<IActionResult> SetTrialExpiry(int userId, [FromBody] SetTrialExpiryRequest request)
+        {
+            await billingService.SetTrialExpiryAsync(userId, request.TrialExpiresAt);
+            return NoContent();
         }
     }
 }
