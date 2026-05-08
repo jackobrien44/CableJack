@@ -33,7 +33,7 @@ namespace CableJack.Api.Hubs
             var history = await db.ChatMessages
                 .Where(m => m.ChannelId == channelId && m.SentAt >= cutoff)
                 .OrderByDescending(m => m.SentAt)
-                .Take(50)
+                .Take(100)
                 .OrderBy(m => m.SentAt)
                 .Select(m => new { m.Id, m.UserId, m.Username, m.Text, m.SentAt })
                 .ToListAsync();
