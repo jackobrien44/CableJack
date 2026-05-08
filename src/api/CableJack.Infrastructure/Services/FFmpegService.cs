@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using CableJack.Core.Enums;
 using CableJack.Core.Interfaces;
 using CableJack.Core.Settings;
@@ -128,23 +129,68 @@ namespace CableJack.Infrastructure.Services
 
         public async Task PauseAsync(int streamId)
         {
-            _stderrBuffers.TryRemove(streamId, out _);
-            if (_processes.TryRemove(streamId, out var process))
-            {
-                if (!process.HasExited)
-                    process.Kill(entireProcessTree: true);
-
-                await process.WaitForExitAsync();
-                process.Dispose();
-            }
+            if (_processes.TryGetValue(streamId, out var process) && !process.HasExited)
+                SuspendProcess(process);
 
             await UpdateStreamAsync(streamId, StreamStatus.Paused);
         }
 
-        public Task<string> ResumeAsync(int streamId, string sourceUrl) =>
-            StartAsync(streamId, sourceUrl);
+        public async Task<string> ResumeAsync(int streamId, string sourceUrl)
+        {
+            if (_processes.TryGetValue(streamId, out var process) && !process.HasExited)
+            {
+                ResumeProcess(process);
+                await UpdateStreamAsync(streamId, StreamStatus.Running);
+
+                using var scope = _scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<CableJackDbContext>();
+                return await db.Streams
+                    .Where(s => s.Id == streamId)
+                    .Select(s => s.Url)
+                    .FirstOrDefaultAsync() ?? string.Empty;
+            }
+
+            // Process died while suspended — full restart
+            _processes.TryRemove(streamId, out _);
+            _stderrBuffers.TryRemove(streamId, out _);
+            return await StartAsync(streamId, sourceUrl);
+        }
 
         public bool IsRunning(int streamId) => _processes.ContainsKey(streamId);
+
+        private static void SuspendProcess(Process process)
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                NtSuspendProcess(process.Handle);
+            }
+            else
+            {
+                using var kill = Process.Start(new ProcessStartInfo("kill", $"-STOP {process.Id}")
+                    { UseShellExecute = false, RedirectStandardError = true });
+                kill?.WaitForExit();
+            }
+        }
+
+        private static void ResumeProcess(Process process)
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                NtResumeProcess(process.Handle);
+            }
+            else
+            {
+                using var kill = Process.Start(new ProcessStartInfo("kill", $"-CONT {process.Id}")
+                    { UseShellExecute = false, RedirectStandardError = true });
+                kill?.WaitForExit();
+            }
+        }
+
+        [DllImport("ntdll.dll")]
+        private static extern int NtSuspendProcess(IntPtr processHandle);
+
+        [DllImport("ntdll.dll")]
+        private static extern int NtResumeProcess(IntPtr processHandle);
 
         public void Dispose()
         {
