@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster, toast } from 'sonner'
 import { AuthProvider } from './context/AuthContext'
+import { BillingProvider } from './context/BillingContext'
 import { PlatformProvider } from './context/PlatformContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import Layout from './components/Layout'
@@ -45,6 +46,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <PlatformProvider>
       <AuthProvider>
+        <BillingProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -67,6 +69,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
+        </BillingProvider>
         <Toaster
           theme="dark"
           position="bottom-right"

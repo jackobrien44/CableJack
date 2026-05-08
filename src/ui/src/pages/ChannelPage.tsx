@@ -4,6 +4,7 @@ import { channelsApi } from '../api/channels'
 import { epgApi } from '../api/epg'
 import { userApi } from '../api/user'
 import { useStartStream } from '../hooks/useStartStream'
+import { useBilling } from '../hooks/useBilling'
 import type { ProgrammeResponse } from '../types/api'
 import { httpsUrl } from '../utils/url'
 
@@ -64,6 +65,7 @@ export default function ChannelPage() {
   })
 
   const startStream = useStartStream()
+  const { canWatch, startCheckout } = useBilling()
 
   function toggleFavorite() {
     if (isFavorite) removeFavorite.mutate(channelId)
@@ -136,13 +138,22 @@ export default function ChannelPage() {
             <p className="text-gray-400 text-sm mt-3 leading-relaxed">{channel.description}</p>
           )}
 
-          <button
-            onClick={() => startStream.mutate(channelId)}
-            disabled={startStream.isPending}
-            className="mt-4 px-6 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
-          >
-            {startStream.isPending ? 'Starting…' : '▶ Watch'}
-          </button>
+          {canWatch ? (
+            <button
+              onClick={() => startStream.mutate(channelId)}
+              disabled={startStream.isPending}
+              className="mt-4 px-6 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+            >
+              {startStream.isPending ? 'Starting…' : '▶ Watch'}
+            </button>
+          ) : (
+            <button
+              onClick={startCheckout}
+              className="mt-4 px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-semibold rounded-lg transition-colors"
+            >
+              Subscribe to Watch
+            </button>
+          )}
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { Home, Tv2, LayoutList, Star, CircleUser, Settings, LogOut } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { useBilling } from '../hooks/useBilling'
 import { usePlatform } from '../hooks/usePlatform'
 import { TVLayout } from './tv'
 
@@ -66,6 +67,29 @@ function TabLink({ to, label, icon: Icon, end }: NavLinkItemProps) {
   )
 }
 
+function SubscriptionBanner() {
+  const { access, canWatch, startCheckout } = useBilling()
+
+  if (canWatch || !access?.enforcementActive) return null
+
+  const isTrialExpired = access.isOnTrial && !access.hasAccess
+  const message = isTrialExpired
+    ? 'Your trial has expired.'
+    : 'Your subscription is inactive.'
+
+  return (
+    <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2.5 flex items-center justify-between gap-4 shrink-0">
+      <p className="text-amber-300 text-sm">{message} Subscribe to continue watching.</p>
+      <button
+        onClick={startCheckout}
+        className="shrink-0 px-3 py-1 bg-amber-500 hover:bg-amber-400 text-black text-xs font-semibold rounded-md transition-colors"
+      >
+        Subscribe
+      </button>
+    </div>
+  )
+}
+
 export default function Layout() {
   const { isTV } = usePlatform()
   const { user, logout, isAdmin } = useAuth()
@@ -118,6 +142,7 @@ export default function Layout() {
       </aside>
 
       <main className="flex-1 min-h-0 flex flex-col overflow-hidden pb-16 md:pb-0">
+        <SubscriptionBanner />
         <Outlet />
       </main>
 
