@@ -112,11 +112,7 @@ export default function PlayerPage() {
     hlsRef.current?.destroy()
     hlsRef.current = null
 
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Safari — native HLS
-      video.src = streamUrl
-      video.play().catch(() => {})
-    } else if (Hls.isSupported()) {
+    if (Hls.isSupported()) {
       const hls = new Hls({ liveSyncDurationCount: 4 })
       hls.loadSource(streamUrl)
       hls.attachMedia(video)
@@ -126,6 +122,10 @@ export default function PlayerPage() {
         setResolution(level?.height ? `${level.height}p` : null)
       })
       hlsRef.current = hls
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari — native HLS (HLS.js cannot run here)
+      video.src = streamUrl
+      video.play().catch(() => {})
     }
 
     return () => {
