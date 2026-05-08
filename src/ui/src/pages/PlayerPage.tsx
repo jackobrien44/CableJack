@@ -8,6 +8,7 @@ import type { ProgrammeResponse } from '../types/api'
 import { usePlatform } from '../hooks/usePlatform'
 import { useBilling } from '../hooks/useBilling'
 import { ChatPanel } from '../components/ChatPanel'
+import { useAuth } from '../hooks/useAuth'
 
 const CONTROLS_HIDE_MS = 4000
 
@@ -18,6 +19,7 @@ export default function PlayerPage() {
   const location = useLocation()
   const { isTV } = usePlatform()
   const { canWatch } = useBilling()
+  const { user } = useAuth()
 
   function goBack() {
     if (location.key !== 'default') navigate(-1)
@@ -395,25 +397,27 @@ export default function PlayerPage() {
             )}
           </div>
 
-          {/* Tab switcher */}
-          <div className="flex border-b border-gray-800 shrink-0">
-            {(['schedule', 'chat'] as const).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setSidebarTab(tab)}
-                className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
-                  sidebarTab === tab
-                    ? 'text-violet-400 border-b-2 border-violet-500'
-                    : 'text-gray-500 hover:text-gray-300'
-                }`}
-              >
-                {tab === 'schedule' ? 'Schedule' : 'Live Chat'}
-              </button>
-            ))}
-          </div>
+          {/* Tab switcher — only shown to users with chat access */}
+          {user?.isChatEnabled && (
+            <div className="flex border-b border-gray-800 shrink-0">
+              {(['schedule', 'chat'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setSidebarTab(tab)}
+                  className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                    sidebarTab === tab
+                      ? 'text-violet-400 border-b-2 border-violet-500'
+                      : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                >
+                  {tab === 'schedule' ? 'Schedule' : 'Live Chat'}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Tab content */}
-          {sidebarTab === 'schedule' ? (
+          {sidebarTab === 'schedule' || !user?.isChatEnabled ? (
             upcomingList.length > 0 ? (
               <div className="flex flex-col overflow-hidden flex-1">
                 <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider px-5 py-3 shrink-0">Up Next</p>

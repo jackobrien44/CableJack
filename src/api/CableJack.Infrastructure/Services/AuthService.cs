@@ -129,6 +129,7 @@ namespace CableJack.Infrastructure.Services
                     Username = user.Username,
                     IsActive = user.IsActive,
                     Role = user.Role,
+                    IsChatEnabled = user.IsChatEnabled,
                     CreatedAt = user.CreatedAt,
                     ModifiedAt = user.ModifiedAt,
                     LastLoginAt = user.LastLoginAt,
@@ -143,13 +144,15 @@ namespace CableJack.Infrastructure.Services
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var expiresAt = DateTime.UtcNow.AddMinutes(double.Parse(jwtSettings["ExpirationMinutes"] ?? "60"));
 
-            var claims = new[]
+            var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
                 new Claim(ClaimTypes.Role, user.Role.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };
+            if (user.IsChatEnabled)
+                claims.Add(new Claim("chat", "enabled"));
 
             var token = new JwtSecurityToken(
                 issuer: jwtSettings["Issuer"],

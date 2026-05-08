@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CableJack.Api.Hubs
 {
-    [Authorize]
+    [Authorize(Policy = "ChatEnabled")]
     public class ChatHub(CableJackDbContext db) : Hub
     {
         private static readonly ConcurrentDictionary<int, Queue<DateTime>> _rateLimits = new();

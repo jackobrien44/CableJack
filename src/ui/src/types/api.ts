@@ -20,6 +20,7 @@ export interface UserResponse {
   username: string
   isActive: boolean
   role: 'User' | 'Administrator'
+  isChatEnabled: boolean
   createdAt: string
   modifiedAt: string | null
 }
