@@ -10,6 +10,7 @@ import { streamsApi } from '../api/streams'
 import { epgApi } from '../api/epg'
 import type { ProgrammeResponse } from '../types/api'
 import { usePlatform } from '../hooks/usePlatform'
+import { useBilling } from '../hooks/useBilling'
 
 const CONTROLS_HIDE_MS = 4000
 
@@ -19,11 +20,16 @@ export default function PlayerPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { isTV } = usePlatform()
+  const { canWatch } = useBilling()
 
   function goBack() {
     if (location.key !== 'default') navigate(-1)
     else navigate('/', { replace: true })
   }
+  useEffect(() => {
+    if (!canWatch) navigate(`/channels/${channelId}`, { replace: true })
+  }, [canWatch, channelId, navigate])
+
   const startedRef = useRef(false)
   const cancelledRef = useRef(false)
   const [streamId, setStreamId] = useState<number | null>(null)
