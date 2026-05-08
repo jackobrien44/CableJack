@@ -19,7 +19,10 @@ export default function EpgPage() {
   const { isTV } = usePlatform()
 
   const filtered = search.trim()
-    ? (nowPlaying ?? []).filter(p => p.channelName.toLowerCase().includes(search.toLowerCase()))
+    ? (nowPlaying ?? []).filter(p => {
+        const q = search.toLowerCase()
+        return p.channelName.toLowerCase().includes(q) || p.title.toLowerCase().includes(q)
+      })
     : (nowPlaying ?? [])
 
   const parentRef = useRef<HTMLDivElement>(null)
@@ -50,7 +53,7 @@ export default function EpgPage() {
           <div className="flex items-center gap-3">
             <input
               type="search"
-              placeholder="Filter channels…"
+              placeholder="Filter by channel or program…"
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="bg-gray-800 text-white text-sm placeholder-gray-500 border border-gray-700 rounded-lg px-3 py-1.5 focus:outline-none focus:border-gray-500 w-48"
