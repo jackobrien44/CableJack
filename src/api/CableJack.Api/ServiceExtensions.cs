@@ -35,6 +35,7 @@ public static class ServiceExtensions
         services.AddScoped<ISettingsService, SettingsService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IAuditService, AuditService>();
+        services.AddScoped<IBillingService, BillingService>();
         services.AddHttpContextAccessor();
 
         services.AddRateLimiter(options =>
